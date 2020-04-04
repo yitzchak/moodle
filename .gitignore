@@ -1,0 +1,7 @@
+*.aux
+*.sty
+*.log
+*.idx
+*.glo
+*-cache.yaml
+output

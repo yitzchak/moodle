@@ -1203,7 +1203,27 @@
       \generate@moodle@write@code*{unitsleft}<unitsleft>{\csname ifmoodle@units left\endcsname 1\else 0\fi}%
       \moodleset{units left=false}%
 
-% TO DO: implement unit-handling for numerical questions!
+%% UNITS
+      \define@cmdkey{moodle}[moodle@]{units}[]{}%
+      \def\moodle@writeunits{%
+        \ifdefempty{\moodle@units}{}{%
+          \bgroup%
+            \writetomoodle[2]{<units>}%
+            \def\writeunit##1=##2\relax{%
+              \writetomoodle[4]{<unit>}
+              \writetomoodle[6]{  <unit_name>##1</unit_name>}
+              \writetomoodle[6]{  <multiplier>\ifblank{##2}{1}{##2}</multiplier>}
+              \writetomoodle[4]{</unit>}
+            }%
+            \def\do##1{%
+              \xa\writeunit##1\relax}%
+            \docsvlist\moodle@units%
+            \writetomoodle[2]{</units>}%
+          \egroup%
+        }%
+      }%
+      \moodleset{units=}%
+
 %    \end{macrocode}
 % \subsubsection{Keys for short answer questions}
 %    \begin{macrocode}
@@ -1721,6 +1741,7 @@
     \moodle@writeunitgradingtype%
     \moodle@writeunitpenalty%
     \moodle@writeunitsleft%
+    \moodle@writeunits%
     \moodle@writeanswers%
   \writetomoodle{</question>}%
 }%

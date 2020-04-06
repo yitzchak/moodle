@@ -734,6 +734,7 @@
 
 \RequirePackage{environ} %To be able to take environment body as a macro argument
 \RequirePackage{xkeyval} %For key-handling
+\RequirePackage{expl3}
 \RequirePackage{amssymb} %For \checkmark symbol
 \RequirePackage{trimspaces} %To remove extra spaces from strings
 \RequirePackage{etex}    %Expansion control, detokenization, etc.
@@ -1204,25 +1205,27 @@
       \moodleset{units left=false}%
 
 %% UNITS
-      \define@cmdkey{moodle}[moodle@]{units}[]{}%
+      \ExplSyntaxOn
+      \prop_new:N\moodle@units%
+
+      \def\def_unit:nn#1#2{\prop_put:Nnn\moodle@units{#1}{\ifblank{#2}{1}{#2}}}%
+      \def\def_unit:n#1{\prop_put:Nnn\moodle@units{#1}{1}}%
+
+      \define@key{moodle}{units}{%
+        \keyval_parse:NNn\def_unit:n\def_unit:nn{#1}}%
+       \def\moodle@writeunit#1#2{%
+        \writetomoodle[4]{<unit>}
+        \writetomoodle[6]{  <unit_name>#1</unit_name>}
+        \writetomoodle[6]{  <multiplier>\ifblank{#2}{1}{#2}</multiplier>}
+        \writetomoodle[4]{</unit>}}%
       \def\moodle@writeunits{%
         \ifdefempty{\moodle@units}{}{%
-          \bgroup%
-            \writetomoodle[2]{<units>}%
-            \def\writeunit##1=##2\relax{%
-              \writetomoodle[4]{<unit>}
-              \writetomoodle[6]{  <unit_name>##1</unit_name>}
-              \writetomoodle[6]{  <multiplier>\ifblank{##2}{1}{##2}</multiplier>}
-              \writetomoodle[4]{</unit>}
-            }%
-            \def\do##1{%
-              \xa\writeunit##1\relax}%
-            \docsvlist\moodle@units%
-            \writetomoodle[2]{</units>}%
-          \egroup%
+          \writetomoodle[2]{<units>}%
+          \prop_map_function:NN\moodle@units\moodle@writeunit%
+          \writetomoodle[2]{</units>}%
         }%
       }%
-      \moodleset{units=}%
+      \ExplSyntaxOff
 
 %    \end{macrocode}
 % \subsubsection{Keys for short answer questions}

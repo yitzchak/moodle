@@ -937,7 +937,7 @@
 }%
 
 \cs_new:Npn\@@_generate_write_html:nnn#1#2#3{
-  % #1 = NAME for \moodle@writeNAME
+  % #1 = NAME for \@@_write_NAME:
   % #2 = HTML tag
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
@@ -955,7 +955,7 @@
 
 
 \cs_new:Npn\@@_generate_write_data:nnn#1#2#3{
-  % #1 = NAME for \moodle@writeNAME
+  % #1 = NAME for \@@_write_NAME:
   % #2 = HTML tag
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
@@ -1264,69 +1264,69 @@
 \keys_define:nn{moodle}{
   %% EDITOR
   response~format .choice:,
-  response~format / html .code:n = \def\moodle@responseformat{editor}, % HTML Editor
-  response~format / html+file .code:n = \def\moodle@responseformat{editorfilepicker}, % HTML Editor with File Picker
-  response~format / text .code:n = \def\moodle@responseformat{plain}, % Plain text
-  response~format / monospaced .code:n = \def\moodle@responseformat{plain}, % Plain text
-  response~format / file .code:n = \def\moodle@responseformat{noinline}, % No inline text (i.e., attachments only)
-  response~format / noinline .code:n = \def\moodle@responseformat{noinline}, % No inline text (i.e., attachments only)
+  response~format / html .code:n = \def\l_@@_response_format_tl{editor}, % HTML Editor
+  response~format / html+file .code:n = \def\l_@@_response_format_tl{editorfilepicker}, % HTML Editor with File Picker
+  response~format / text .code:n = \def\l_@@_response_format_tl{plain}, % Plain text
+  response~format / monospaced .code:n = \def\l_@@_response_format_tl{plain}, % Plain text
+  response~format / file .code:n = \def\l_@@_response_format_tl{noinline}, % No inline text (i.e., attachments only)
+  response~format / noinline .code:n = \def\l_@@_response_format_tl{noinline}, % No inline text (i.e., attachments only)
   response~format .default:n = html,
   response~format .initial:n = html,
 
   %% RESPONSE REQUIRED
-  response~required .bool_set:N = \moodle@responserequired,
+  response~required .bool_set:N = \l_@@_response_required_bool,
   response~required .default:n = true,
   response~required .initial:n = false,
   required .meta:n = {response~required=#1},
 
   %% RESPONSEFIELDLINES
-  response~field~lines .int_set:N = \moodle@responsefieldlines,
+  response~field~lines .int_set:N = \l_@@_response_field_lines_tl,
   response~field~lines .default:n = 15,
   response~field~lines .initial:n = 15,
 
   %% ATTACHMENTS ALLOWED
-  attachments~allowed .tl_set:N = \moodle@attachmentsallowed,
+  attachments~allowed .tl_set:N = \l_@@_attachments_allowed_tl,
   attachments~allowed .default:n = 1,
   attachments~allowed .initial:n = 0,
 
   %% ATTACHMENTS REQUIRED
-  attachments~required .int_set:N = \moodle@attachmentsrequired,
+  attachments~required .int_set:N = \l_@@_attachments_required_int,
   attachments~required .default:n = 1,
   attachments~required .initial:n = 0,
 
   %% RESPONSE TEMPLATE
-  template .tl_set:N = \moodle@responsetemplate,
+  template .tl_set:N = \l_@@_response_template_tl,
   template .initial:n =
 }
 
 %% EDITOR
 \@@_generate_write_data:nnn
   {response_format}{responseformat}
-  {\moodle@responseformat}%
+  {\l_@@_response_format_tl}%
 
 %% RESPONSE REQUIRED
 \@@_generate_write_data:nnn
   {response_required}{responserequired}
-  {\bool_if:NTF\moodle@responserequired{1}{0}}%
+  {\bool_if:NTF\l_@@_response_required_bool{1}{0}}%
 
 %% RESPONSEFIELDLINES
 \@@_generate_write_data:nnn
   {response_field_lines}{responsefieldlines}
-  {\moodle@responsefieldlines}
+  {\l_@@_response_field_lines_tl}
 %Make synonyms 'input box size' or 'height' or 'lines'?
 
 %% ATTACHMENTS ALLOWED
 \@@_generate_write_data:nnn
   {attachments_allowed}{attachments}
-  {\ifdefstring{\moodle@attachmentsallowed}{unlimited}{-1}{\moodle@attachmentsallowed}}
+  {\ifdefstring{\l_@@_attachments_allowed_tl}{unlimited}{-1}{\l_@@_attachments_allowed_tl}}
 
 %% ATTACHMENTS REQUIRED
 \@@_generate_write_data:nnn
   {attachments_required}{attachmentsrequired}
-  {\moodle@attachmentsrequired}
+  {\l_@@_attachments_required_int}
 
 %% RESPONSE TEMPLATE
-\@@_generate_write_html:nnn{responsetemplate}{responsetemplate}{\moodle@responsetemplate}
+\@@_generate_write_html:nnn{response_template}{responsetemplate}{\l_@@_response_template_tl}
 
 %    \end{macrocode}
 % \subsubsection{Hint tags}
@@ -1346,14 +1346,14 @@
 }
 
 %% SHOWNUMCORRECT
-\gdef\moodle@writeshownumcorrect{
+\cs_new:Npn\@@_write_show_num_correct:{
   \if\moodle@shownumcorrect
     \@@_write:xx{4}{<shownumcorrect/>}
   \fi
 }
 
 %% CLEARWRONG
-\gdef\moodle@writeclearwrong{
+\cs_new:Npn\@@_write_clear_wrong:{
   \if\moodle@clearwrong
     \@@_write:xx{4}{<clearwrong/>}
   \fi
@@ -1369,11 +1369,11 @@
 %Each type of question defines how it obtains answers from the LaTeX input,
 %how it typesets those in a PDF or DVI, and how it writes them as XML code.
 %It will write that XML to the macro \moodle@answers@xml,
-%which them gets written to the file when \moodle@writeanswers
+%which them gets written to the file when \@@_write_answers:
 %is invoked.
 
 \def\moodle@answers@xml{}%
-\gdef\moodle@writeanswers{%
+\cs_new:Npn\@@_write_answers:{
   \@@_write:xx{0}{\moodle@answers@xml}%
 }%
 
@@ -1464,7 +1464,7 @@
           \xa\loopthroughitemswithcommand\xa{\csname save#1answer\endcsname}%
           \passvalueaftergroup{\moodle@answers@xml}%
         \egroup
-        \csname write#1question\endcsname
+        \csname @@_write_#1_question:\endcsname
       }{}%
     \egroup
   }%
@@ -1520,7 +1520,7 @@
         %
         \passvalueaftergroup{\moodle@answers@xml}%
       \egroup
-      \writeessayquestion
+      \@@_write_essay_question:
     }{}%
   \egroup
 }%
@@ -1559,18 +1559,18 @@
 %%%% The \@ifundefined lines should automatically define the 
 %%%% \...@preamble \...@postamble macros to be \relax if they don't exist already.
 
-\gdef\writeessayquestion{%
-  \@@_write:xx{0}{<question~type="essay">}%
+\cs_new:Npn\@@_write_essay_question:{
+  \@@_write:xx{0}{<question~type="essay">}
     \@@_write_common_data:
-    \moodle@writeresponserequired%
-    \moodle@writeresponseformat%
-    \moodle@writeresponsefieldlines%
-    \moodle@writeattachmentsallowed%
-    \moodle@writeattachmentsrequired%
-    \moodle@writeanswers% The 'answers' XML really contains the grader info.
-    \moodle@writeresponsetemplate%
-  \@@_write:xx{0}{</question>}%
-}%
+    \@@_write_response_required:
+    \@@_write_response_format:
+    \@@_write_response_field_lines:
+    \@@_write_attachments_allowed:
+    \@@_write_attachements_required:
+    \@@_write_answers:% The 'answers' XML really contains the grader info.
+    \@@_write_response_template:
+  \@@_write:xx{0}{</question>}
+}
 
 \def\moodle@print@essay@answer#1{%
     \item #1%
@@ -1676,13 +1676,13 @@
    }%
 
 % WRITING QUESTION TO XML FILE
-\gdef\writeshortanswerquestion{%
-  \@@_write:xx{0}{<question~type="shortanswer">}%
-    \@@_write_common_data:%
-    \moodle@writeusecase%
-    \moodle@writeanswers%
-  \@@_write:xx{0}{</question>}%
-}%
+\cs_new:Npn\@@_write_shortanswer_question:{
+  \@@_write:xx{0}{<question~type="shortanswer">}
+    \@@_write_common_data:
+    \@@_write_use_case:
+    \@@_write_answers:
+  \@@_write:xx{0}{</question>}
+}
 %    \end{macrocode}
 %
 % \subsubsection{Numerical Question Front-End}
@@ -1741,16 +1741,16 @@
 
 
 % WRITING QUESTION TO XML FILE
-\gdef\writenumericalquestion{%
-  \@@_write:xx{0}{<question~type="numerical">}%
-    \@@_write_common_data:%
-    \@@_write_show_units:%
-    \@@_write_unit_grading_type:%
-    \@@_write_unit_penalty:%
-    \@@_write_units_left:%
-    \@@_write_units:%
-    \moodle@writeanswers%
-  \@@_write:xx{0}{</question>}%
+\cs_new:Npn\@@_write_numerical_question:{
+  \@@_write:xx{0}{<question~type="numerical">}
+    \@@_write_common_data:
+    \@@_write_show_units:
+    \@@_write_unit_grading_type:
+    \@@_write_unit_penalty:
+    \@@_write_units_left:
+    \@@_write_units:
+    \@@_write_answers:
+  \@@_write:xx{0}{</question>}
 }%
 %    \end{macrocode}
 %
@@ -1877,13 +1877,13 @@
   }%
 
 % WRITING QUESTION TO XML FILE
-\gdef\writemultiquestion{%
+\cs_new:Npn\@@_write_multi_question:{
   \@@_write:xx{0}{<question~type="multichoice">}%
     \@@_write_common_data:%
     \@@_write_single:%
     \@@_write_shuffle:%
     \@@_write_answer_numbering:%
-    \moodle@writeanswers%
+    \@@_write_answers:%
   \@@_write:xx{0}{</question>}%
 }%
 %    \end{macrocode}
@@ -1954,14 +1954,14 @@
    }%
 
 % WRITING QUESTION TO XML FILE
-\gdef\writematchingquestion{%
+\cs_new:Npn\@@_write_matching_question:{
   %
     \@@_write:xx{0}{<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}%
     \@@_write_common_data:%
     \@@_write_single:
     \@@_write_shuffle:
     \@@_write_answer_numbering:%
-    \moodle@writeanswers%
+    \@@_write_answers:%
   \@@_write:xx{0}{</question>}%
 %  \gdef\moodle@answ
 }%
@@ -1999,7 +1999,7 @@
     %Now, writing information to memory.
     \@moodle@ifgeneratexml{%
       \xa\questiontext\xa{\BODY}% Save the question text as HTML.
-      \writeclozequestion
+      \@@_write_cloze_question:
     }{}%
   \egroup%
 }
@@ -2014,7 +2014,7 @@
 }
 
 % WRITING QUESTION TO XML FILE
-\gdef\writeclozequestion{%
+\cs_new:Npn\@@_write_cloze_question:{
   \@@_write:xx{0}{<question~type="cloze">}%
     \@@_write_common_data:%
   \@@_write:xx{0}{</question>}%

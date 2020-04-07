@@ -556,8 +556,8 @@
 % Within a cloze question, by default a multiple choice question is implemented
 % as an inline dropdown box.  This is visually compact, but it also prevents the 
 % use of mathematical or HTML formatting.
-% Adding the option |vertical| displays the subquestion as a vertical column
-% of radio buttons instead; likewise the option |horizontal| creates a horizontal 
+% Adding the option |display mode=vertical| displays the subquestion as a vertical column
+% of radio buttons instead; likewise the option |display mode=horizontal| creates a horizontal
 % row of radio buttons.
 % 
 % \section{Conversion to HTML}
@@ -3176,10 +3176,8 @@
 % \subsubsection{Graphics key-handling}
 % Next, we get ready to handle keys like |height=4cm| or |width=3cm| or |ppi=72|.
 %    \begin{macrocode}
-\define@cmdkeys{moodle@includegraphics}[moodle@graphics@]{ppi}
-\define@cmdkey{moodle}[moodle@graphics@]{ppi}{}% This is so the ppi key can be set at the document, quiz, or question level.
-\define@cmdkeys{Gin}{ppi}% This is so the original \includegraphics will not object to a key of ppi.
-\setkeys{moodle@includegraphics}{ppi=103}
+
+\ExplSyntaxOn
 
 \newdimen\moodle@graphics@temp@dimen
 \newcount\moodle@graphics@height@pixels
@@ -3191,13 +3189,25 @@
   #1=\moodle@graphics@temp@dimen
   \divide #1 by 65536\relax
 }
-\define@key{moodle@includegraphics}{height}[]{%
-  \moodle@graphics@dimentopixels{\moodle@graphics@height@pixels}{#1}%
+
+\keys_define:nn{moodle}{
+  ppi .tl_set:N = \moodle@graphics@ppi,
+  ppi .default:n = 103,
+  ppi .initial:n = 103,
+
+  width .code:n = \moodle@graphics@dimentopixels{\moodle@graphics@height@pixels}{#1},
+  width .initial:n = 0pt,
+
+  height .code:n = \moodle@graphics@dimentopixels{\moodle@graphics@height@pixels}{#1},
+  height .initial:n = 0pt
 }
-\define@key{moodle@includegraphics}{width}[]{%
-  \moodle@graphics@dimentopixels{\moodle@graphics@width@pixels}{#1}%
-}
-\setkeys{moodle@includegraphics}{height=0pt,width=0pt}
+
+%\define@cmdkeys{moodle@includegraphics}[moodle@graphics@]{ppi}
+%\define@cmdkey{moodle}[moodle@graphics@]{ppi}{}% This is so the ppi key can be set at the document, quiz, or question level.
+%\define@cmdkeys{Gin}{ppi}% This is so the original \includegraphics will not object to a key of ppi.
+%\setkeys{moodle@includegraphics}{ppi=103}
+
+
 %    \end{macrocode}
 % 
 % \subsubsection{Graphics conversion to HTML}

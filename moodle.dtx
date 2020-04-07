@@ -24,10 +24,12 @@
 %<*driver>
 \ProvidesFile{moodle.dtx}
 %</driver>
-%<package>\NeedsTeXFormat{LaTeX2e}[1999/12/01]
-%<package>\ProvidesPackage{moodle}
 %<*package>
-    [2016/01/11 v0.5 Moodle quiz XML generation]
+%<@@=moodle>
+\RequirePackage{expl3}
+\NeedsTeXFormat{LaTeX2e}[1999/12/01]
+\ProvidesExplPackage{moodle}
+    {2016/01/11}{v0.5}{Moodle quiz XML generation}
 %</package>
 %
 %<*driver>
@@ -721,6 +723,7 @@
 % \section{Implementation}
 % \subsection{Packages, Options, and Utilities}
 %    \begin{macrocode}
+\makeatletter
 \newif\ifmoodle@draftmode
 \newif\ifmoodle@tikzloaded
 
@@ -732,13 +735,11 @@
 
 \ProcessOptions
 
-\RequirePackage{environ} %To be able to take environment body as a macro argument
-\RequirePackage{xkeyval} %For key-handling
-\RequirePackage{expl3}
-\RequirePackage{amssymb} %For \checkmark symbol
-\RequirePackage{trimspaces} %To remove extra spaces from strings
 \RequirePackage{etex}    %Expansion control, detokenization, etc.
 \RequirePackage{etoolbox}%List management
+\RequirePackage{environ} %To be able to take environment body as a macro argument
+\RequirePackage{amssymb} %For \checkmark symbol
+\RequirePackage{trimspaces} %To remove extra spaces from strings
 \RequirePackage{xpatch}  %To patch commands easily in HTML mode
 \RequirePackage{array}   %For formatting tables in the LaTeX mode of Clozes
 \RequirePackage{ifplatform} % To choose Ghostscript commands
@@ -894,9 +895,7 @@
 % 
 % The various options are set using key-value syntax of |xkeyval|.
 %    \begin{macrocode}
-\ExplSyntaxOn
 \def\moodleset#1{\keys_set:nn{moodle}{#1}}%
-\ExplSyntaxOff
 %    \end{macrocode}
 % We first define some macros that will help us write other macros.
 % Calling |\generate@moodle@write@code|\marg{name}|<|\meta{HTML tag}|>|\marg{text to write}
@@ -944,10 +943,10 @@
   \xa\gdef\csname moodle@write#1\endcsname{%
     \xa\def\xa\test@iii\xa{#3}%
     \ifx\test@iii\@moodle@empty
-      \writetomoodle[2]{  <#2 format="html"><text/></#2>}%
+      \writetomoodle[2]{  <#2~format="html"><text/></#2>}%
     \else
       \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#3}%
-      \writetomoodle[2]{  <#2 format="html">}%
+      \writetomoodle[2]{  <#2~format="html">}%
       \writetomoodle[4]{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}%
       \writetomoodle[2]{  </#2>}%
     \fi
@@ -979,8 +978,6 @@
   \def\moodle@questiontext{#1}%
 }%
 \generate@moodle@write@code{questiontext}<questiontext>{\moodle@questiontext}%{%
-
-\ExplSyntaxOn
 
 \keys_define:nn{moodle}{
   %% QUESTIONNAME
@@ -1350,7 +1347,6 @@
     \writetomoodle[4]{<clearwrong/>}
   \fi
 }
-\ExplSyntaxOff
 
 % TO DO: Implement hints
 %    \end{macrocode}
@@ -1660,17 +1656,17 @@
    }%
    \def\saveshortansweranswer@int@int#1\moodle@answer@rdelim{%
      \def\moodle@answertext{#1}%
-     \addto@xml[2]{\moodle@answers@xml}{<answer fraction="\moodle@fraction" format="plain_text">}%
+     \addto@xml[2]{\moodle@answers@xml}{<answer~fraction="\moodle@fraction"~format="plain_text">}%
      \addto@xml[4]{\moodle@answers@xml}{  <text>\moodle@answertext</text>}%
      \ifx\moodle@feedback\@empty\relax\else
-       \addto@xml[4]{\moodle@answers@xml}{  <feedback format="html"><text><![CDATA[<p>\moodle@feedback</p>]]></text></feedback>}%
+       \addto@xml[4]{\moodle@answers@xml}{  <feedback~format="html"><text><![CDATA[<p>\moodle@feedback</p>]]></text></feedback>}%
      \fi
      \addto@xml[2]{\moodle@answers@xml}{</answer>}%
    }%
 
 % WRITING QUESTION TO XML FILE
 \gdef\writeshortanswerquestion{%
-  \writetomoodle{<question type="shortanswer">}%
+  \writetomoodle{<question~type="shortanswer">}%
     \moodle@writecommondata%
     \moodle@writeusecase%
     \moodle@writeanswers%
@@ -1777,7 +1773,6 @@
     \moodleset{fraction=0,#1}%
     \moodle@print@multichoice@answer@int@int
   }%
-  \ExplSyntaxOn
   \def\moodle@print@multichoice@answer@int@int#1#2\@rdelim{%
     \def\test@i{#1}%
     \bool_if:NTF\moodle@single%
@@ -1797,7 +1792,6 @@
       $~(\moodle@fraction\%)$
       }
   }%
-  \ExplSyntaxOff
 
 % COMMON UTILITY: COUNTING CORRECT ANSWERS
    \newcounter{moodle@numcorrectanswers}%
@@ -1851,7 +1845,6 @@
     \moodleset{fraction=0,#1}%
     \savemultianswer@int@int%
   }%
-  \ExplSyntaxOn
   \def\savemultianswer@int@int#1#2\moodle@answer@rdelim{%
     \def\test@i{#1}%
     \ifx\test@i\@star
@@ -1871,7 +1864,6 @@
     \fi
     \addto@xml[2]{\moodle@answers@xml}{</answer>}%
   }%
-  \ExplSyntaxOff
 
 % WRITING QUESTION TO XML FILE
 \gdef\writemultiquestion{%
@@ -1923,7 +1915,6 @@
      \moodleset{#1}%
      \xa\savematchinganswer@int@int\space%
    }%
-   \ExplSyntaxOn
    \long\def\savematchinganswer@int@int#1\answer#2\moodle@answer@rdelim{%
      % Note that #1 may simply be \relax.
      \def\moodle@subquestiontext{#1}%
@@ -1950,10 +1941,8 @@
      \fi
      \addto@xml[2]{\moodle@answers@xml}{</subquestion>}%
    }%
-   \ExplSyntaxOff
 
 % WRITING QUESTION TO XML FILE
-\ExplSyntaxOn
 \gdef\writematchingquestion{%
   %
     \writetomoodle{<question~type="\bool_if:NTF\moodle@draganddrop{ddmatch}{matching}">}%
@@ -1965,7 +1954,6 @@
   \writetomoodle{</question>}%
 %  \gdef\moodle@answ
 }%
-\ExplSyntaxOff
 %    \end{macrocode}
 %
 % \subsection{Cloze Questions}
@@ -2029,8 +2017,7 @@
 
 \NewEnviron{clozemulti}[1][]{%
   \bgroup
-    \moodleset{default grade=1}%
-    \moodleset{#1}%
+    \moodleset{default~grade=1,#1}%
     \expandafter\gatheritems\xa{\BODY}%
     \let\moodle@questionheader=\gatheredheader
     \ifhtmlizer@active
@@ -2531,8 +2518,8 @@
 \newif\ifhtmlize@expandcs
 \newif\ifhtmlize@passcs
 
-\long\def\@@begin@cs{\begin}%
-\def\@@htmlize@stop{\@htmlize@stop}%
+\long\def\@@@@begin@cs{\begin}%
+\def\@@@@htmlize@stop{\@htmlize@stop}%
 
 \long\def\converttohtmlmacro#1#2{%
   \grouplevel=0\relax
@@ -2561,7 +2548,7 @@
   %\long\def\ds{(#1|#2|#3)}\show\ds
   \def\test@i{#1}%
   \def\test@ii{#2}%
-  \ifx\test@i\@@htmlize@stop
+  \ifx\test@i\@@@@htmlize@stop
     \let\htmlize@next@i=\relax
   \else
     \ifx\test@i\@otherlbrace%
@@ -2671,7 +2658,7 @@
           % This is good for testing with \ifx.
           % \htmlize@cs@string contains the cs as a string, e.g., the characters "\emph".
           %
-          \ifx\@htmlize@cs\@@begin@cs
+          \ifx\@htmlize@cs\@@@@begin@cs
             %This is a \begin.  Begin environment-handling routine.
             %
             % Grab the first {...} from \htmlize@remainder, which is the argument
@@ -3177,8 +3164,6 @@
 % Next, we get ready to handle keys like |height=4cm| or |width=3cm| or |ppi=72|.
 %    \begin{macrocode}
 
-\ExplSyntaxOn
-
 \newdimen\moodle@graphics@temp@dimen
 \newcount\moodle@graphics@height@pixels
 \newcount\moodle@graphics@width@pixels
@@ -3222,7 +3207,7 @@
   % which we will re-insert after our work is done.
 \newcommand\moodle@includegraphics@int@int[2][]{%
   \bgroup% The grouping is to localize the changes caused by \setkeys.
-    \message{moodle.sty: Processing \string\includegraphics[#1]{#2} for HTML...^^J}
+    \msg_info:nn{moodle}{Processing~\string\includegraphics[#1]{#2}~for~HTML...^^J}
     \setkeys*{moodle@includegraphics}{#1}%
     % Height or width should be given in TeX dimensions like cm or pt or in,
     % and are converted to pixels for web use using the ppi key.  
@@ -3253,22 +3238,22 @@
     \fi
     %First, convert it to PNG
     \edef\cmdline{\htmlize@imagemagick@convert\otherspace #2 -resize \moodle@graphics@geometry\otherspace #2.png}%
-    \message{moodle.sty:   Converting '#2' to PNG...^^J}%
+    \msg_info:nn{moodle}{Converting~'#2'~to~PNG...^^J}%
     \expandafter\immediate\expandafter\write18\expandafter{\cmdline}%
     %Next, convert the PNG to base64 encoding
     \def\cmdline{\openssl\otherspace enc -base64 -in #2.png -out #2.enc}%
-    \message{moodle.sty:   Converting '#2.png' to base64...^^J}%
+    \msg_info:nn{moodle}{Converting~'#2.png'~to~base64...^^J}%
     \expandafter\immediate\expandafter\write18\expandafter{\cmdline}%
     %Now, save that base64 encoding in a TeX macro
     \def\moodle@newpic@baselxiv{}%
-    \message{moodle.sty:   Reading base64 file '#2.enc'...^^J}%
+    \msg_info:nn{moodle}{Reading~base64~file~'#2.enc'...^^J}%
     \openin\baseLXIVdatafile=#2.enc\relax
       \savebaselxivdata@recursive
     \closein\baseLXIVdatafile
     \xa\global\xa\let\csname picbaselxiv@graphics@#2\endcsname=\moodle@newpic@baselxiv%
     \edef\htmlize@imagetag{<IMG \moodle@graphics@htmlgeometry\otherspace SRC="data:image/png;base64,\csname picbaselxiv@graphics@#2\endcsname">}%
     \xa\g@addto@macro\xa\htmlize@output\xa{\htmlize@imagetag}%
-    \message{moodle.sty:   <IMG> tag inserted.^^J}%
+    \msg_info:nn{moodle}{<IMG>~tag~inserted.^^J}%
   \egroup
   % Now we re-insert the code to get the HTMLizing going again.
   \xa\htmlize@proceedwiththerest\htmlize@afteraction@hook
@@ -3303,6 +3288,11 @@
 % Our solution is to wait until |\AtBeginDocument| and then test whether 
 % \TikZ\ is loaded.  If so, we make the appropriate definitions.
 %    \begin{macrocode}
+
+\msg_new:nnn{moodle}{convert}{Converting~'#1'~to~#2...}
+\msg_new:nnn{moodle}{read}{Reading~'#1'...}
+\msg_new:nnn{moodle}{save}{#1~data~saved.}
+
 \newif\ifmoodle@tikzloaded
 \moodle@tikzloadedfalse
 \AtBeginDocument{
@@ -3314,7 +3304,7 @@
   \ifmoodle@tikzloaded
     \usetikzlibrary{external}
     \tikzexternalize%
-    \tikzset{external/force remake}%
+    \tikzset{external/force~remake}%
 
     \ifpdf
       \def\pdftopng{\edef\gscmdline{\gs\otherspace -dBATCH -dNOPAUSE -sDEVICE=pngalpha -sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png -r200 \tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}%
@@ -3346,20 +3336,20 @@
     \def\moodle@endtikzpicture@hook{%
       \@moodle@ifgeneratexml{%
         \ifpdf
-          \message{moodle.sty: Converting picture '\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf' to PNG...^^J}%
+          \msg_info:nnxx{moodle}{convert}{\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}{png}
           \pdftopng
         \else
           \pstopng
         \fi
-        \message{moodle.sty:   Converting '\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png' to base64...^^J}%
+        \msg_info:nnxx{moodle}{convert}{\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png}{base64}
         \pngtobaselxiv
-        \message{moodle.sty:   Reading base64 file '\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.enc'...^^J}%
+        \msg_info:nnx{moodle}{read}{\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.enc}
         \savebaselxivdata
-        \message{moodle.sty:   base64 data saved.^^J}%
+        \msg_info:nnx{moodle}{save}{base64}%
       }{}%
     }
     \tikzset{external/optimize=true}
-    \tikzset{external/optimize command away={\VerbatimInput}{1}}
+    \tikzset{external/optimize~command~away={\VerbatimInput}{1}}
     %
     % The HTMLizer version of the tikzpicture environment,
     % which writes an <IMG> tag to the XML file.
@@ -3400,9 +3390,9 @@
   \ifmoodle@tikzloaded
     \@moodle@ifgeneratexml{%
       \ifwindows
-        \immediate\write18{del \tikzexternalrealjob-tikztemp-*.*}%
+        \immediate\write18{del~\tikzexternalrealjob-tikztemp-*.*}%
       \else
-        \immediate\write18{rm \tikzexternalrealjob-tikztemp-*.*}%
+        \immediate\write18{rm~\tikzexternalrealjob-tikztemp-*.*}%
       \fi
     }{}%
   \fi
@@ -3414,4 +3404,5 @@
 %    \end{macrocode}
 %
 % \Finale
+\makeatother
 \endinput

@@ -256,14 +256,14 @@
 % The following key-value options may be set for all questions:
 % 
 % \DescribeMacro{points}\DescribeMacro{default grade}
-% By .default, each question is worth 1 point on the quiz.
+% By default, each question is worth 1 point on the quiz.
 % This may be changed with the |points| key or its synonym, |default grade|;
 % for example, |points=2| makes that question worth two points.
 % 
 % \DescribeMacro{penalty}
 % The |penalty| is the fraction of points that is taken off for each wrong attempt;
 % it may be set to any value between 0 and 1.
-% The .default is |penalty=0.10|.
+% The default is |penalty=0.10|.
 % 
 % \DescribeMacro{fraction}
 % In most question types, it is possible to designate some answers as being
@@ -311,7 +311,7 @@
 % The boolean key |shuffle| determines whether Moodle will
 % rearrange the possible answers in a random order.
 % Setting |shuffle=false| will guarantee that the answer appear
-% in the order they were typed; the .default is |shuffle=true|.
+% in the order they were typed; the default is |shuffle=true|.
 % 
 % \DescribeMacro{numbering}
 % Moodle offers different options for numbering the possible answers.
@@ -337,7 +337,7 @@
 % whereas a bare |\item| sets |fraction=0|.
 % 
 % \DescribeMacro{single}\DescribeMacro{multiple}
-% By .default, the |multi| environment produces
+% By default, the |multi| environment produces
 % a multiple choice question operates with only one correct answer;
 % this is called |single| mode, and on Moodle it appears with radio buttons.
 % It is also possible to write questions with more than one correct answer,
@@ -416,7 +416,7 @@
 % including or omitting a period.
 % 
 % \DescribeMacro{case sensitive}\DescribeMacro{usecase}
-% By .default, Moodle ignores the distinction between upper- and lower-case letters
+% By default, Moodle ignores the distinction between upper- and lower-case letters
 % when grading a short answer question.
 % You can make a question case-sensitive with the key |case sensitive| 
 % or its shorter synonym |usecase|.
@@ -449,7 +449,7 @@
 % answers to an essay question.  You may choose one of these five options:
 % \begin{description}
 %   \item[{\tt html}] An editor with the ability to format HTML responses
-%         including markup for italics, boldface, etc.  This is the .default.
+%         including markup for italics, boldface, etc.  This is the default.
 %   \item[{\tt file}] A file picker allowing the student to upload a file, such as
 %         a PDF or DOC file, containing the essay.
 %   \item[{\tt html+file}] The same HTML editor as above, but with the ability
@@ -463,7 +463,7 @@
 % 
 % \DescribeMacro{response field lines}
 % The key |response field lines| controls the height of the input box.
-% The .default is |response field lines=15|.
+% The default is |response field lines=15|.
 % 
 % \DescribeMacro{attachments allowed}
 % The |attachments allowed| key controls \emph{how many} attachments a student is
@@ -505,7 +505,7 @@
 % 
 % \DescribeMacro{shuffle}
 % The |matching| question accepts the option of |shuffle| to randomly
-% permute the questions and answers; by .default |shuffle=true|.
+% permute the questions and answers; by default |shuffle=true|.
 % 
 % \DescribeMacro{drag and drop}\DescribeMacro{dd}
 % Moodle has two formats for matching questions.
@@ -516,7 +516,7 @@
 % all answers in a second column, and allows students to drag the correct
 % answer to the question using a mouse.
 % To enable drag-and-drop matching, use the key `|drag and drop|' or `|dd|' for 
-% short.  The .default is |dd=false|.  If you choose the older format,
+% short.  The default is |dd=false|.  If you choose the older format,
 % then due to the limitations of dropdown boxes, no \LaTeX\ or HTML code can be used
 % in the answers.
 % 
@@ -553,7 +553,7 @@
 % environments.
 % 
 % \DescribeMacro{vertical}\DescribeMacro{horizontal}
-% Within a cloze question, by .default a multiple choice question is implemented
+% Within a cloze question, by default a multiple choice question is implemented
 % as an inline dropdown box.  This is visually compact, but it also prevents the 
 % use of mathematical or HTML formatting.
 % Adding the option |vertical| displays the subquestion as a vertical column
@@ -617,7 +617,7 @@
 % such as |scale| or |angle|, will affect the PDF but not the XML output.
 % The dimensions set by |height| and |width| are \TeX\ dimensions such as |4in| or |2.3cm|.
 % In order to prepare the image for web viewing, this package converts those 
-% dimensions to pixels using a .default of
+% dimensions to pixels using a default of
 % 103 pixels per inch.\footnote{This
 %   number was selected because an image with 
 %   |<IMG HEIGHT=103 WIDTH=103 SRC="...">| showed up as almost exactly 1 inch 
@@ -634,7 +634,7 @@
 %         so that each |tikzpicture| environment is compiled to a freestanding PDF file.
 %   \item GhostScript (\url{www.ghostscript.com}) is used to convert the PDF output
 %         from \TikZ\ into a PNG raster graphics file.
-%         The .default command line is presumed to be |gswin64c.exe|
+%         The default command line is presumed to be |gswin64c.exe|
 %         (if |\ifwindows| from the |ifplatform| package returns true)
 %         or |gs| (if |\ifwindows| returns false).
 %         If your system requires a different command line to invoke Ghostscript,
@@ -709,7 +709,7 @@
 % \section{Unrelated Tip: Quality of Moodle \TeX\ Images}
 % This has nothing to do with |moodle.sty|, but is a Frequently Asked Question
 % in is own right.
-% On some servers, at least, Moodle's .default ``\TeX\ Filter'' for
+% On some servers, at least, Moodle's default ``\TeX\ Filter'' for
 % displaying mathematical notation is of abysmally poor quality, rending mathematics
 % as low-resolution PNG's.  One solution that has worked for me is to go 
 % to ``Course Administration $\to$ Filters,'' turn ``\TeX\ Notation'' \emph{off},
@@ -967,89 +967,83 @@
 %    \end{macrocode}
 % \subsubsection{Keys for all question types}
 %    \begin{macrocode}
-%% QUESTIONNAME
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        questionname .tl_set:N = \moodle@questionname
-      }
-      \ExplSyntaxOff
-      \gdef\moodle@writequestionname{%
-        \writetomoodle[2]{<name>}%
-        \writetomoodle[4]{  <text>\moodle@questionname</text>}%
-        \writetomoodle[2]{</name>}%
-      }%
-
 %% QUESTIONTEXT
-      %I tried to use questiontext as a key, but it doesn't seem to work.
-      %The trouble is that xkeyval has trouble parsing a key with a \par token followed by a comma within brackets,
-      %like \moodleset{questiontext={ABC\par [D,E]}}
-      %It's not worth trying to fix.
+%I tried to use questiontext as a key, but it doesn't seem to work.
+%The trouble is that xkeyval has trouble parsing a key with a \par token followed by a comma within brackets,
+%like \moodleset{questiontext={ABC\par [D,E]}}
+%It's not worth trying to fix.
 
-      \long\def\questiontext#1{%
-        %\converttohtmlmacro\myoutput{#1}%
-        %\let\moodle@questiontext=\myoutput%
-        \def\moodle@questiontext{#1}%
-      }%
-      \generate@moodle@write@code{questiontext}<questiontext>{\moodle@questiontext}%{%
+\long\def\questiontext#1{%
+  %\converttohtmlmacro\myoutput{#1}%
+  %\let\moodle@questiontext=\myoutput%
+  \def\moodle@questiontext{#1}%
+}%
+\generate@moodle@write@code{questiontext}<questiontext>{\moodle@questiontext}%{%
+
+\ExplSyntaxOn
+
+\keys_define:nn{moodle}{
+  %% QUESTIONNAME
+  questionname .tl_set:N = \moodle@questionname,
+
+  %% PENALTY FOR WRONG ATTEMPT
+  penalty .tl_set:N = \moodle@penalty,
+  penalty .default:n = 0.1,
+  penalty .initial:n = 0.1,
+
+  %% FEEDBACK
+  feedback .tl_set:N = \moodle@feedback,
+  feedback .initial:n =,
+
+  %% DEFAULT GRADE
+  default~grade .tl_set:N = \moodle@defaultgrade,
+  default~grade .default:n = 1.0,
+  default~grade .initial:n = 1.0,
+  points .meta:n = {default~grade=#1},
+
+  %% HIDDEN
+  hidden .bool_set:N = \moodle@hidden,
+  hidden .default:n = true,
+  hidden .initial:n = false
+}
+
+%% QUESTIONNAME
+\gdef\moodle@writequestionname{
+  \writetomoodle[2]{<name>}
+  \writetomoodle[4]{  <text>\moodle@questionname</text>}
+  \writetomoodle[2]{</name>}
+}
 
 %% PENALTY FOR WRONG ATTEMPT
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        penalty .tl_set:N = \moodle@penalty,
-        penalty .default:n = 0.1,
-        penalty .initial:n = 0.1
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code*{penalty}<penalty>{\moodle@penalty}%
+\generate@moodle@write@code*{penalty}<penalty>{\moodle@penalty}
 
 %% FEEDBACK
-      % Moodle allows for feedback tailored to each question,
-      % and feedback tailored to each right or wrong answer.
-      % We shall use the key 'feedback' to record both kinds of feedback,
-      % relying on TeX's grouping mechanism to keep them apart.
-      % When it comes time to write them to XML,
-      % \moodle@writegeneralfeedback uses the HTML tag <generalfeedback>
-      % whereas \moodle@writefeedback uses the tag <feedback>.
-      % Note that the general feedback is NOT inherited by each answer!
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        feedback .tl_set:N = \moodle@feedback,
-        feedback .initial:n =
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code{generalfeedback}<generalfeedback>{\moodle@feedback}%
-      \generate@moodle@write@code{feedback}<feedback>{\moodle@feedback}%
+% Moodle allows for feedback tailored to each question,
+% and feedback tailored to each right or wrong answer.
+% We shall use the key 'feedback' to record both kinds of feedback,
+% relying on TeX's grouping mechanism to keep them apart.
+% When it comes time to write them to XML,
+% \moodle@writegeneralfeedback uses the HTML tag <generalfeedback>
+% whereas \moodle@writefeedback uses the tag <feedback>.
+% Note that the general feedback is NOT inherited by each answer!
+\generate@moodle@write@code{generalfeedback}<generalfeedback>{\moodle@feedback}
+\generate@moodle@write@code{feedback}<feedback>{\moodle@feedback}
 
-%% .default GRADE
-      %The next line creates \moodle@defaultgrade,
-      %which is how many points the quiz question is worth.
-      %Key calls like [default grade=7] set \moodle@defaultgrade.
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        default~grade .tl_set:N = \moodle@defaultgrade,
-        default~grade .default:n = 1.0,
-        default~grade .initial:n = 1.0,
-        points .meta:n = {default~grade=#1}
-      }
-      \generate@moodle@write@code*{defaultgrade}<defaultgrade>{\moodle@defaultgrade}%
+%% DEFAULT GRADE
+%How many points the quiz question is worth.
+\generate@moodle@write@code*{defaultgrade}<defaultgrade>{\moodle@defaultgrade}
 
 %% HIDDEN
-      \keys_define:nn{moodle}{
-        hidden .bool_set:N = \moodle@hidden,
-        hidden .default:n = true,
-        hidden .initial:n = false
-      }
-      \generate@moodle@write@code*{hidden}<hidden>{\bool_if:NTF\moodle@hidden{1}{0}}%
-      \ExplSyntaxOff
+\generate@moodle@write@code*{hidden}<hidden>{\bool_if:NTF\moodle@hidden{1}{0}}
 
-\def\moodle@writecommondata{%
-  \moodle@writequestionname%
-  \moodle@writequestiontext%
-  \moodle@writedefaultgrade%
-  \moodle@writegeneralfeedback%
-  \moodle@writepenalty%
-  \moodle@writehidden%
-}%
+\def\moodle@writecommondata{
+  \moodle@writequestionname
+  \moodle@writequestiontext
+  \moodle@writedefaultgrade
+  \moodle@writegeneralfeedback
+  \moodle@writepenalty
+  \moodle@writehidden
+}
 
 % TO DO: 'tags' (i.e., keywords)
 
@@ -1057,334 +1051,306 @@
 % \subsubsection{Keys for all answers}
 %    \begin{macrocode}
 %% FRACTION -- how much this answer is worth out of 100 percent
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        fraction .tl_set:N = \moodle@fraction,
-        fraction .default:n = 100,
-        fraction .initial:n = 100
-      }
-      \ExplSyntaxOff
-      %We do not create \moodle@writefraction, because the fraction occurs in
-      %the XML within the answer tag, like <answer fraction="75">.
+\keys_define:nn{moodle}{
+  %% FRACTION
+  fraction .tl_set:N = \moodle@fraction,
+  fraction .default:n = 100,
+  fraction .initial:n = 100
+}
+%We do not create \moodle@writefraction, because the fraction occurs in
+%the XML within the answer tag, like <answer fraction="75">.
 %    \end{macrocode}
 % \subsubsection{Keys for multiple choice questions}
 %    \begin{macrocode}
 
+%The key 'multiple' is an antonym to 'single'.
+\keys_define:nn{moodle}{
+  %% SINGLE and MULTIPLE -- for multichoice, is there 1 right answer or more than 1?
+  single .bool_set:N = \moodle@single,
+  single .default:n = true,
+  single .initial:n = true,
+  multiple .bool_set_inverse:N = \moodle@single,
+
+  %% SHUFFLE ANSWERS
+  shuffle .bool_set:N = \moodle@shuffle,
+  shuffle .default:n = true,
+  shuffle .initial:n = true,
+
+  %% NUMBERING -- for numbering of multichoice questions
+  numbering .choice:,
+  numbering / alpha  .code:n   = \def\moodle@numbering{abc},
+  numbering / alph   .code:n   = \def\moodle@numbering{abc},
+  numbering / Alpha  .code:n   = \def\moodle@numbering{ABC},
+  numbering / Alph   .code:n   = \def\moodle@numbering{ABC},
+  numbering / arabic .code:n   = \def\moodle@numbering{123},
+  numbering / roman  .code:n   = \def\moodle@numbering{iii},
+  numbering / Roman  .code:n   = \def\moodle@numbering{IIII},
+  numbering / abc    .tl_set:N = \moodle@numbering,
+  numbering / ABC    .tl_set:N = \moodle@numbering,
+  numbering / 123    .tl_set:N = \moodle@numbering,
+  numbering / iii    .tl_set:N = \moodle@numbering,
+  numbering / IIII   .tl_set:N = \moodle@numbering,
+  numbering .default:n = abc,
+  numbering .initial:n = abc,
+  answer~numbering .meta:n = {numbering=#1},
+
+  %% TO DO: CORRECTFEEDBACK
+  %% TO DO: PARTIALLYCORRECTFEEDBACK
+  %% TO DO: INCORRECTFEEDBACK
+  %% TO DO: NUMCORRECT key
+
+  %% DISPLAY MODE -- affects Cloze multiple choice questions only.
+  display~mode .choice:,
+  display~mode / inline     .code:n = \def\moodle@multi@mode{0},
+  display~mode / vertical   .code:n = \def\moodle@multi@mode{1},
+  display~mode / horizontal .code:n = \def\moodle@multi@mode{2},
+  display~mode .default:n = inline,
+  display~mode .initial:n = inline
+}
+
 %% SINGLE and MULTIPLE -- for multichoice, is there 1 right answer or more than 1?
-      \ExplSyntaxOn
-      %The key 'multiple' is an antonym to 'single'.
-      \keys_define:nn{moodle}{
-        single .bool_set:N = \moodle@single,
-        single .default:n = true,
-        single .initial:n = true,
-        multiple .bool_set_inverse:N = \moodle@single
-      }
-      \generate@moodle@write@code*{single}<single>{\bool_if:NTF\moodle@single{true}{false}}%
-      \ExplSyntaxOff
+\generate@moodle@write@code*{single}<single>{\bool_if:NTF\moodle@single{true}{false}}
 
 %% SHUFFLE ANSWERS
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        shuffle .bool_set:N = \moodle@shuffle,
-        shuffle .default:n = true,
-        shuffle .initial:n = true
-      }
-      \generate@moodle@write@code*{shuffle}<shuffleanswers>{\bool_if:NTF\moodle@shuffle{1}{0}}%
-      \ExplSyntaxOff
-
-%% TO DO: CORRECTFEEDBACK
-%% TO DO: PARTIALLYCORRECTFEEDBACK
-%% TO DO: INCORRECTFEEDBACK
-%% TO DO: NUMCORRECT key
+\generate@moodle@write@code*{shuffle}<shuffleanswers>{\bool_if:NTF\moodle@shuffle{1}{0}}
 
 %% NUMBERING -- for numbering of multichoice questions
-      \ExplSyntaxOn
-      %'answer numbering' will be a synonym to 'numbering'
-      \keys_define:nn{moodle}{
-        numbering .choice:,
-        numbering / alpha  .code:n   = \def\moodle@numbering{abc},
-        numbering / alph   .code:n   = \def\moodle@numbering{abc},
-        numbering / Alpha  .code:n   = \def\moodle@numbering{ABC},
-        numbering / Alph   .code:n   = \def\moodle@numbering{ABC},
-        numbering / arabic .code:n   = \def\moodle@numbering{123},
-        numbering / roman  .code:n   = \def\moodle@numbering{iii},
-        numbering / Roman  .code:n   = \def\moodle@numbering{IIII},
-        numbering / abc    .tl_set:N = \moodle@numbering,
-        numbering / ABC    .tl_set:N = \moodle@numbering,
-        numbering / 123    .tl_set:N = \moodle@numbering,
-        numbering / iii    .tl_set:N = \moodle@numbering,
-        numbering / IIII   .tl_set:N = \moodle@numbering,
-        numbering .default:n = abc,
-        numbering .initial:n = abc,
-        answer~numbering .meta:n = {numbering=#1}
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code*{answernumbering}<answernumbering>{\moodle@numbering}%
+\generate@moodle@write@code*{answernumbering}<answernumbering>{\moodle@numbering}%
       
-      \def\@moodle@alpha{alpha}%
-      \def\@moodle@Alpha{Alpha}%
-      \def\@moodle@alph{alph}%
-      \def\@moodle@Alph{Alph}%
-      \def\@moodle@arabic{arabic}%
-      \def\@moodle@roman{roman}%
-      \def\@moodle@Roman{Roman}%      
-      \def\@moodle@abc{abc}%
-      \def\@moodle@ABC{ABC}%
-      \def\@moodle@arabicnumbers{123}%
-      \def\@moodle@iii{iii}%
-      \def\@moodle@IIII{IIII}%
-      \def\@moodle@none{none}%
-      \def\moodle@obeynumberingstyle{%
-        \ifx\moodle@numbering\@moodle@abc
-          \renewcommand\theenumii{\alph{enumii}}%
-        \fi
-        \ifx\moodle@numbering\@moodle@ABC
-          \renewcommand\theenumii{\Alph{enumii}}%
-        \fi
-        \ifx\moodle@numbering\@moodle@arabicnumbers
-          \renewcommand\theenumii{\arabic{enumii}}%
-        \fi
-        \ifx\moodle@numbering\@moodle@iii
-          \renewcommand\theenumii{\roman{enumii}}%
-        \fi
-        \ifx\moodle@numbering\@moodle@IIII
-          \renewcommand\theenumii{\Roman{enumii}}%
-        \fi
-        \ifx\moodle@numbering\@moodle@none
-          \renewcommand\labelenumii{$\bullet$~}%
-        \fi
-      }
-      %TO DO: * In the PDF, how should 'none' in a multi look different from 
-      %         short answer or numerical options?
-      %       * Instead of \theenumi and \labelenumi,
-      %         use \@enumdepth to automatically set the correct depth.
+\def\@moodle@alpha{alpha}%
+\def\@moodle@Alpha{Alpha}%
+\def\@moodle@alph{alph}%
+\def\@moodle@Alph{Alph}%
+\def\@moodle@arabic{arabic}%
+\def\@moodle@roman{roman}%
+\def\@moodle@Roman{Roman}%
+\def\@moodle@abc{abc}%
+\def\@moodle@ABC{ABC}%
+\def\@moodle@arabicnumbers{123}%
+\def\@moodle@iii{iii}%
+\def\@moodle@IIII{IIII}%
+\def\@moodle@none{none}%
+\def\moodle@obeynumberingstyle{%
+  \ifx\moodle@numbering\@moodle@abc
+    \renewcommand\theenumii{\alph{enumii}}%
+  \fi
+  \ifx\moodle@numbering\@moodle@ABC
+    \renewcommand\theenumii{\Alph{enumii}}%
+  \fi
+  \ifx\moodle@numbering\@moodle@arabicnumbers
+    \renewcommand\theenumii{\arabic{enumii}}%
+  \fi
+  \ifx\moodle@numbering\@moodle@iii
+    \renewcommand\theenumii{\roman{enumii}}%
+  \fi
+  \ifx\moodle@numbering\@moodle@IIII
+    \renewcommand\theenumii{\Roman{enumii}}%
+  \fi
+  \ifx\moodle@numbering\@moodle@none
+    \renewcommand\labelenumii{$\bullet$~}%
+  \fi
+}
+%TO DO: * In the PDF, how should 'none' in a multi look different from
+%         short answer or numerical options?
+%       * Instead of \theenumi and \labelenumi,
+%         use \@enumdepth to automatically set the correct depth.
       
-%% DISPLAY MODE -- affects Cloze multiple choice questions only.
-      % 0 = inline, 1 = vertical, 2 = horizontal
-      \ExplSyntaxOn
-      \def\moodle@multi@mode{0}%
-      \keys_define:nn{moodle}{
-        inline     .code:n = \def\moodle@multi@mode{0},
-        vertical   .code:n = \def\moodle@multi@mode{1},
-        horizontal .code:n = \def\moodle@multi@mode{2}
-      }
-      \ExplSyntaxOff
 %    \end{macrocode}
 % \subsubsection{Keys for numerical questions}
 %    \begin{macrocode}
-%% TOLERANCE
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        tolerance .tl_set:N = \moodle@tolerance,
-        tolerance .default:n = 0,
-        tolerance .initial:n = 0
-      }
-      \ExplSyntaxOff
-      %There is no \moodle@writetolerance, because in the XML the
-      %tolerance is given within the answer tag,
-      %like <answer fraction=100 tolerance=0.03>.
+\keys_define:nn{moodle}{
+  %% TOLERANCE
+  tolerance .tl_set:N = \moodle@tolerance,
+  tolerance .default:n = 0,
+  tolerance .initial:n = 0,
+
+  %% SHOW UNITS
+  show~units .choice:,
+  show~units / none      .code:n = \def\moodle@showunits{0},
+  show~units / text      .code:n = \def\moodle@showunits{1},
+  show~units / select    .code:n = \def\moodle@showunits{2},
+  show~units / drop~down .code:n = \def\moodle@showunits{3},
+  show~units .default:n = none,
+  show~units .initial:n = none,
+
+  %% UNIT GRADING TYPE
+  unit~grading~type .choice:,
+  unit~grading~type / none     .code:n = \def\moodle@unitgradingtype{0},
+  unit~grading~type / response .code:n = \def\moodle@unitgradingtype{1},
+  unit~grading~type / question .code:n = \def\moodle@unitgradingtype{2},
+  unit~grading~type .default:n = none,
+  unit~grading~type .initial:n = none,
+
+  %% PENALTY FOR INCORRECT UNITS
+  unit~penalty .tl_set:N = \moodle@unitpenalty,
+  unit~penalty .default:n = 0.1,
+  unit~penalty .initial:n = 0.1,
+
+  %% UNITS LEFT
+  units~left .bool_set:N = \moodle@unitsleft,
+  units~left .default:n = true,
+  units~left .initial:n = false,
+
+  %% UNITS
+  units .code:n = \keyval_parse:NNn\def_unit:n\def_unit:nn{#1}
+}
+
+%There is no \moodle@writetolerance, because in the XML the
+%tolerance is given within the answer tag,
+%like <answer fraction=100 tolerance=0.03>.
 
 %% SHOW UNITS
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        show~units .choice:,
-        show~units / none      .code:n = \def\moodle@showunits{0},
-        show~units / text      .code:n = \def\moodle@showunits{1},
-        show~units / select    .code:n = \def\moodle@showunits{2},
-        show~units / drop~down .code:n = \def\moodle@showunits{3},
-        show~units .default:n = none,
-        show~units .initial:n = none
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code*{showunits}<showunits>{\moodle@showunits}%
+\generate@moodle@write@code*{showunits}<showunits>{\moodle@showunits}%
 
 %% UNIT GRADING TYPE
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        unit~grading~type .choice:,
-        unit~grading~type / none     .code:n = \def\moodle@unitgradingtype{0},
-        unit~grading~type / response .code:n = \def\moodle@unitgradingtype{1},
-        unit~grading~type / question .code:n = \def\moodle@unitgradingtype{2},
-        unit~grading~type .default:n = none,
-        unit~grading~type .initial:n = none
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code*{unitgradingtype}<unitgradingtype>{\moodle@unitgradingtype}%
+\generate@moodle@write@code*{unitgradingtype}<unitgradingtype>{\moodle@unitgradingtype}%
 
 %% PENALTY FOR INCORRECT UNITS
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        unit~penalty .tl_set:N = \moodle@unitpenalty,
-        unit~penalty .default:n = 0.1,
-        unit~penalty .initial:n = 0.1
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code*{unitpenalty}<unitpenalty>{\moodle@unitpenalty}%
+\generate@moodle@write@code*{unitpenalty}<unitpenalty>{\moodle@unitpenalty}%
 
 %% UNITS LEFT
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        units~left .bool_set:N = \moodle@unitsleft,
-        units~left .default:n = true,
-        units~left .initial:n = false
-      }
-      \generate@moodle@write@code*{unitsleft}<unitsleft>{\bool_if:NTF\moodle@unitsleft{1}{0}}%
-      \ExplSyntaxOff
+\generate@moodle@write@code*{unitsleft}<unitsleft>{\bool_if:NTF\moodle@unitsleft{1}{0}}%
 
 %% UNITS
-      \ExplSyntaxOn
-      \prop_new:N\moodle@units%
+\prop_new:N\moodle@units%
 
-      \def\def_unit:nn#1#2{\prop_put:Nnn\moodle@units{#1}{\ifblank{#2}{1}{#2}}}%
-      \def\def_unit:n#1{\prop_put:Nnn\moodle@units{#1}{1}}%
+\def\def_unit:nn#1#2{\prop_put:Nnn\moodle@units{#1}{\ifblank{#2}{1}{#2}}}%
+\def\def_unit:n#1{\prop_put:Nnn\moodle@units{#1}{1}}%
 
-      \keys_define:nn{moodle}{
-        units .code:n = \keyval_parse:NNn\def_unit:n\def_unit:nn{#1}
-      }
+\def\moodle@writeunit#1#2{%
+  \writetomoodle[4]{<unit>}
+  \writetomoodle[6]{  <unit_name>#1</unit_name>}
+  \writetomoodle[6]{  <multiplier>\ifblank{#2}{1}{#2}</multiplier>}
+  \writetomoodle[4]{</unit>}}%
 
-      \def\moodle@writeunit#1#2{%
-        \writetomoodle[4]{<unit>}
-        \writetomoodle[6]{  <unit_name>#1</unit_name>}
-        \writetomoodle[6]{  <multiplier>\ifblank{#2}{1}{#2}</multiplier>}
-        \writetomoodle[4]{</unit>}}%
-
-      \def\moodle@writeunits{%
-        \ifdefempty{\moodle@units}{}{%
-          \writetomoodle[2]{<units>}%
-          \prop_map_function:NN\moodle@units\moodle@writeunit%
-          \writetomoodle[2]{</units>}%
-        }%
-      }%
-      \ExplSyntaxOff
+\def\moodle@writeunits{
+  \ifdefempty{\moodle@units}{}{
+    \writetomoodle[2]{<units>}
+    \prop_map_function:NN\moodle@units\moodle@writeunit
+    \writetomoodle[2]{</units>}
+  }
+}
 
 %    \end{macrocode}
 % \subsubsection{Keys for short answer questions}
 %    \begin{macrocode}
+\keys_define:nn{moodle}{
+  %% CASE SENSITIVE
+  % We make 'usecase' a synonym for 'case sensitive'.
+  case~sensitive .bool_set:N = \moodle@casesensitive,
+  case~sensitive .default:n = true,
+  case~sensitive .initial:n = false,
+  use~case .meta:n = {case~sensitive=#1}
+}
+
 %% CASE SENSITIVE
-      \ExplSyntaxOn
-      % We make 'usecase' a synonym for 'case sensitive'.
-      \keys_define:nn{moodle}{
-        case~sensitive .bool_set:N = \moodle@casesensitive,
-        case~sensitive .default:n = true,
-        case~sensitive .initial:n = false,
-        use~case .meta:n = {case~sensitive=#1}
-      }
-      \generate@moodle@write@code*{usecase}<usecase>{\bool_if:NTF\moodle@casesensitive{1}{0}}%
-      \ExplSyntaxOff
+\generate@moodle@write@code*{usecase}<usecase>{\bool_if:NTF\moodle@casesensitive{1}{0}}
+
 %    \end{macrocode}
 % \subsubsection{Keys for matching questions}
 %    \begin{macrocode}
-%% DRAG-AND-DROP FORMAT
-      \ExplSyntaxOn
-      % We make 'dd' and 'dragdrop' and 'drag and drop' synonyms for 'draganddrop'.
-      \keys_define:nn{moodle}{
-        drag~and~drop .bool_set:N = \moodle@draganddrop,
-        drag~and~drop .default:n = true,
-        drag~and~drop .initial:n = false,
-        draganddrop .meta:n = {drag~and~drop=#1},
-        dd .meta:n = {drag~and~drop=#1}
-      }
-      \ExplSyntaxOff
+
+\keys_define:nn{moodle}{
+  %% DRAG-AND-DROP FORMAT
+  % We make 'dd' and 'dragdrop' and 'drag and drop' synonyms for 'draganddrop'.
+  drag~and~drop .bool_set:N = \moodle@draganddrop,
+  drag~and~drop .default:n = true,
+  drag~and~drop .initial:n = false,
+  draganddrop .meta:n = {drag~and~drop=#1},
+  dd .meta:n = {drag~and~drop=#1}
+}
+
 %    \end{macrocode}
 % \subsubsection{Keys for essay questions}
 %    \begin{macrocode}
+\keys_define:nn{moodle}{
+  %% EDITOR
+  response~format .choice:,
+  response~format / html .code:n = \def\moodle@responseformat{editor}, % HTML Editor
+  response~format / html+file .code:n = \def\moodle@responseformat{editorfilepicker}, % HTML Editor with File Picker
+  response~format / text .code:n = \def\moodle@responseformat{plain}, % Plain text
+  response~format / monospaced .code:n = \def\moodle@responseformat{plain}, % Plain text
+  response~format / file .code:n = \def\moodle@responseformat{noinline}, % No inline text (i.e., attachments only)
+  response~format / noinline .code:n = \def\moodle@responseformat{noinline}, % No inline text (i.e., attachments only)
+  response~format .default:n = html,
+  response~format .initial:n = html,
+
+  %% RESPONSE REQUIRED
+  response~required .bool_set:N = \moodle@responserequired,
+  response~required .default:n = true,
+  response~required .initial:n = false,
+  required .meta:n = {response~required=#1},
+
+  %% RESPONSEFIELDLINES
+  response~field~lines .int_set:N = \moodle@responsefieldlines,
+  response~field~lines .default:n = 15,
+  response~field~lines .initial:n = 15,
+
+  %% ATTACHMENTS ALLOWED
+  attachments~allowed .tl_set:N = \moodle@attachmentsallowed,
+  attachments~allowed .default:n = 1,
+  attachments~allowed .initial:n = 0,
+
+  %% ATTACHMENTS REQUIRED
+  attachments~required .int_set:N = \moodle@attachmentsrequired,
+  attachments~required .default:n = 1,
+  attachments~required .initial:n = 0,
+
+  %% RESPONSE TEMPLATE
+  template .tl_set:N = \moodle@responsetemplate,
+  template .initial:n =
+}
+
 %% EDITOR
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        response~format .choice:,
-        response~format / html .code:n = \def\moodle@responseformat{editor}, % HTML Editor
-        response~format / html+file .code:n = \def\moodle@responseformat{editorfilepicker}, % HTML Editor with File Picker
-        response~format / text .code:n = \def\moodle@responseformat{plain}, % Plain text
-        response~format / monospaced .code:n = \def\moodle@responseformat{plain}, % Plain text
-        response~format / file .code:n = \def\moodle@responseformat{noinline}, % No inline text (i.e., attachments only)
-        response~format / noinline .code:n = \def\moodle@responseformat{noinline}, % No inline text (i.e., attachments only)
-        response~format .default:n = html,
-        response~format .initial:n = html
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code*{responseformat}<responseformat>{\moodle@responseformat}%
+\generate@moodle@write@code*{responseformat}<responseformat>{\moodle@responseformat}%
 
 %% RESPONSE REQUIRED
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        response~required .bool_set:N = \moodle@responserequired,
-        response~required .default:n = true,
-        response~required .initial:n = false,
-        required .meta:n = {response~required=#1}
-      }
-      \generate@moodle@write@code*{responserequired}<responserequired>{\bool_if:NTF\moodle@responserequired{1}{0}}%
-      \ExplSyntaxOff
+\generate@moodle@write@code*{responserequired}<responserequired>{\bool_if:NTF\moodle@responserequired{1}{0}}%
 
 %% RESPONSEFIELDLINES
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        response~field~lines .int_set:N = \moodle@responsefieldlines,
-        response~field~lines .default:n = 15,
-        response~field~lines .initial:n = 15
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code*{responsefieldlines}<responsefieldlines>{\moodle@responsefieldlines}%
-      %Make synonyms 'input box size' or 'height' or 'lines'?
+\generate@moodle@write@code*{responsefieldlines}<responsefieldlines>{\moodle@responsefieldlines}%
+%Make synonyms 'input box size' or 'height' or 'lines'?
 
 %% ATTACHMENTS ALLOWED
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        attachments~allowed .tl_set:N = \moodle@attachmentsallowed,
-        attachments~allowed .default:n = 1,
-        attachments~allowed .initial:n = 0
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code*{attachmentsallowed}<attachments>{\ifdefstring{\moodle@attachmentsallowed}{unlimited}{-1}{\moodle@attachmentsallowed}}%
+\generate@moodle@write@code*{attachmentsallowed}<attachments>{\ifdefstring{\moodle@attachmentsallowed}{unlimited}{-1}{\moodle@attachmentsallowed}}%
 
 %% ATTACHMENTS REQUIRED
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        attachments~required .int_set:N = \moodle@attachmentsrequired,
-        attachments~required .default:n = 1,
-        attachments~required .initial:n = 0
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code*{attachmentsrequired}<attachmentsrequired>{\moodle@attachmentsrequired}
+\generate@moodle@write@code*{attachmentsrequired}<attachmentsrequired>{\moodle@attachmentsrequired}
 
 %% RESPONSE TEMPLATE
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        template .tl_set:N = \moodle@responsetemplate,
-        template .initial:n =
-      }
-      \ExplSyntaxOff
-      \generate@moodle@write@code{responsetemplate}<responsetemplate>{\moodle@responsetemplate}
+\generate@moodle@write@code{responsetemplate}<responsetemplate>{\moodle@responsetemplate}
+
 %    \end{macrocode}
 % \subsubsection{Hint tags}
 % The following are not yet fully implemented.
 %    \begin{macrocode}
+
+\keys_define:nn{moodle}{
+  %% SHOWNUMCORRECT
+  show~num~correct .bool_set:N = \moodle@shownumcorrect,
+  show~num~correct .default:n = true,
+  show~num~correct .initial:n = false,
+
+  %% CLEARWRONG
+  clear~wrong .bool_set:N = \moodle@clearwrong,
+  clear~wrong .default:n = true,
+  clear~wrong .initial:n = false
+}
+
 %% SHOWNUMCORRECT
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        show~num~correct .bool_set:N = \moodle@shownumcorrect,
-        show~num~correct .default:n = true,
-        show~num~correct .initial:n = false
-      }
-      \ExplSyntaxOff
-      \gdef\moodle@writeshownumcorrect{%
-        \if\moodle@shownumcorrect
-          \writetomoodle[4]{    <shownumcorrect/>}%
-        \fi
-      }%
+\gdef\moodle@writeshownumcorrect{
+  \if\moodle@shownumcorrect
+    \writetomoodle[4]{<shownumcorrect/>}
+  \fi
+}
 
 %% CLEARWRONG
-      \ExplSyntaxOn
-      \keys_define:nn{moodle}{
-        clear~wrong .bool_set:N = \moodle@clearwrong,
-        clear~wrong .default:n = true,
-        clear~wrong .initial:n = false
-      }
-      \ExplSyntaxOff
-      \gdef\moodle@writeclearwrong{%
-        \if\moodle@clearwrong
-          \writetomoodle[4]{    <clearwrong/>}%
-        \fi
-      }%
+\gdef\moodle@writeclearwrong{
+  \if\moodle@clearwrong
+    \writetomoodle[4]{<clearwrong/>}
+  \fi
+}
+\ExplSyntaxOff
 
 % TO DO: Implement hints
 %    \end{macrocode}
@@ -1689,7 +1655,7 @@
   \egroup
 }%
    \newcommand\saveshortansweranswer@int[1][]{%
-     \moodleset{fraction=100,#1}%                  %%%%%% .default VALUE IS 100%
+     \moodleset{fraction=100,#1}%                  %%%%%% DEFAULT VALUE IS 100%
      \saveshortansweranswer@int@int%
    }%
    \def\saveshortansweranswer@int@int#1\moodle@answer@rdelim{%
@@ -1752,7 +1718,7 @@
   \egroup
 }%
    \newcommand\savenumericalanswer@int[1][]{%
-     \moodleset{fraction=100,#1}%                  %%%%%% .default VALUE IS 100%
+     \moodleset{fraction=100,#1}%                  %%%%%% DEFAULT VALUE IS 100%
      \savenumericalanswer@int@int%
    }%
    \def\savenumericalanswer@int@int#1\moodle@answer@rdelim{%
@@ -2256,7 +2222,7 @@
   \egroup
 }%
 \newcommand\saveclozenumericalanswer@int[1][]{%
-  \moodleset{fraction=100,#1}%                  %%%%%% .default VALUE IS 100%
+  \moodleset{fraction=100,#1}%                  %%%%%% DEFAULT VALUE IS 100%
   \saveclozenumericalanswer@int@int%
 }%
 \def\saveclozenumericalanswer@int@int#1\moodle@answer@rdelim{%
@@ -2359,7 +2325,7 @@
   \egroup
 }%
 \newcommand\saveclozeshortansweranswer@int[1][]{%
-  \moodleset{fraction=100,#1}%                  %%%%%% .default VALUE IS 100%
+  \moodleset{fraction=100,#1}%                  %%%%%% DEFAULT VALUE IS 100%
   \saveclozeshortansweranswer@int@int%
 }%
 \def\saveclozeshortansweranswer@int@int#1\moodle@answer@rdelim{%
@@ -2815,7 +2781,7 @@
                                         {\g@addto@macro\htmlize@output{>}}%
                       \def\htmlize@next@i{\htmlize@recursive@i#2#3\htmlize@rdelim@i}%
                     \else                                      
-                      % .default case: write first token to output, call self on remaining tokens.
+                      % default case: write first token to output, call self on remaining tokens.
                       \g@addto@macro\htmlize@output{#1}%
                       \def\htmlize@next@i{\htmlize@recursive@i#2#3\htmlize@rdelim@i}%
                     \fi
@@ -3256,7 +3222,7 @@
     %        Other keys: keepaspectratio=true|false, angle (rotation), clip & trim
     \ifnum\moodle@graphics@height@pixels=0\relax
       \ifnum\moodle@graphics@width@pixels=0\relax
-        % No size specified.  .default to height of 200 pixels.
+        % No size specified.  default to height of 200 pixels.
         \def\moodle@graphics@geometry{x200}%
         \def\moodle@graphics@htmlgeometry{}%
       \else

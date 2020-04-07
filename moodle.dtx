@@ -744,6 +744,7 @@
 \RequirePackage{array}   %For formatting tables in the LaTeX mode of Clozes
 \RequirePackage{ifplatform} % To choose Ghostscript commands
 \RequirePackage{ifpdf} % Needed to know whether we can convert output from PDF to PNG
+\RequirePackage{shellesc} %For write18
 
 \RequirePackage{getitems} %To gather the header and items
 
@@ -982,25 +983,25 @@
 
 \keys_define:nn{moodle}{
   %% QUESTIONNAME
-  questionname .tl_set:N = \moodle@questionname,
+  questionname .tl_set:N = \l_@@_question_name_tl,
 
   %% PENALTY FOR WRONG ATTEMPT
-  penalty .tl_set:N = \moodle@penalty,
+  penalty .tl_set:N = \l_@@_penalty_tl,
   penalty .default:n = 0.1,
   penalty .initial:n = 0.1,
 
   %% FEEDBACK
-  feedback .tl_set:N = \moodle@feedback,
+  feedback .tl_set:N = \l_@@_feedback_tl,
   feedback .initial:n =,
 
   %% DEFAULT GRADE
-  default~grade .tl_set:N = \moodle@defaultgrade,
+  default~grade .tl_set:N = \l_@@_default_grade_tl,
   default~grade .default:n = 1.0,
   default~grade .initial:n = 1.0,
   points .meta:n = {default~grade=#1},
 
   %% HIDDEN
-  hidden .bool_set:N = \moodle@hidden,
+  hidden .bool_set:N = \l_@@_hidden_bool,
   hidden .default:n = true,
   hidden .initial:n = false
 }
@@ -1008,12 +1009,12 @@
 %% QUESTION NAME
 \cs_new:Npn\@@_write_question_name:{
   \@@_write:xx{2}{<name>}
-  \@@_write:xx{4}{  <text>\moodle@questionname</text>}
+  \@@_write:xx{4}{  <text>\l_@@_question_name_tl</text>}
   \@@_write:xx{2}{</name>}
 }
 
 %% PENALTY FOR WRONG ATTEMPT
-\@@_generate_write_data:nnn{penalty}{penalty}{\moodle@penalty}
+\@@_generate_write_data:nnn{penalty}{penalty}{\l_@@_penalty_tl}
 
 %% FEEDBACK
 % Moodle allows for feedback tailored to each question,
@@ -1024,15 +1025,15 @@
 % \@@_write_general_feedback: uses the HTML tag <generalfeedback>
 % whereas \@@_write_feedback: uses the tag <feedback>.
 % Note that the general feedback is NOT inherited by each answer!
-\@@_generate_write_html:nnn{general_feedback}{generalfeedback}{\moodle@feedback}
-\@@_generate_write_html:nnn{feedback}{feedback}{\moodle@feedback}
+\@@_generate_write_html:nnn{general_feedback}{generalfeedback}{\l_@@_feedback_tl}
+\@@_generate_write_html:nnn{feedback}{feedback}{\l_@@_feedback_tl}
 
 %% DEFAULT GRADE
 %How many points the quiz question is worth.
-\@@_generate_write_data:nnn{default_grade}{defaultgrade}{\moodle@defaultgrade}
+\@@_generate_write_data:nnn{default_grade}{defaultgrade}{\l_@@_default_grade_tl}
 
 %% HIDDEN
-\@@_generate_write_data:nnn{hidden}{hidden}{\bool_if:NTF\moodle@hidden{1}{0}}
+\@@_generate_write_data:nnn{hidden}{hidden}{\bool_if:NTF\l_@@_hidden_bool{1}{0}}
 
 \cs_new:Npn\@@_write_common_data:{
   \@@_write_question_name:
@@ -1051,7 +1052,7 @@
 %% FRACTION -- how much this answer is worth out of 100 percent
 \keys_define:nn{moodle}{
   %% FRACTION
-  fraction .tl_set:N = \moodle@fraction,
+  fraction .tl_set:N = \l_@@_fraction_tl,
   fraction .default:n = 100,
   fraction .initial:n = 100
 }
@@ -1234,7 +1235,7 @@
 %    \begin{macrocode}
 \keys_define:nn{moodle}{
   %% CASE SENSITIVE
-  % We make 'usecase' a synonym for 'case sensitive'.
+  % We make 'use case' a synonym for 'case sensitive'.
   case~sensitive .bool_set:N = \l_@@_case_sensitive_bool,
   case~sensitive .default:n = true,
   case~sensitive .initial:n = false,
@@ -1242,7 +1243,7 @@
 }
 
 %% CASE SENSITIVE
-\@@_generate_write_data:nnn{usecase}{usecase}{\bool_if:NTF\l_@@_case_sensitive_bool{1}{0}}
+\@@_generate_write_data:nnn{use_case}{usecase}{\bool_if:NTF\l_@@_case_sensitive_bool{1}{0}}
 
 %    \end{macrocode}
 % \subsubsection{Keys for matching questions}
@@ -1334,29 +1335,29 @@
 %    \begin{macrocode}
 
 \keys_define:nn{moodle}{
-  %% SHOWNUMCORRECT
-  show~num~correct .bool_set:N = \moodle@shownumcorrect,
+  %% SHOW  NUM  CORRECT
+  show~num~correct .bool_set:N = \l_@@_show_num_correct_bool,
   show~num~correct .default:n = true,
   show~num~correct .initial:n = false,
 
-  %% CLEARWRONG
-  clear~wrong .bool_set:N = \moodle@clearwrong,
+  %% CLEAR WRONG
+  clear~wrong .bool_set:N = \l_@@_clear_wrong_bool,
   clear~wrong .default:n = true,
   clear~wrong .initial:n = false
 }
 
-%% SHOWNUMCORRECT
+%% SHOW NUM CORRECT
 \cs_new:Npn\@@_write_show_num_correct:{
-  \if\moodle@shownumcorrect
-    \@@_write:xx{4}{<shownumcorrect/>}
-  \fi
+  \bool_if:NTF\l_@@_show_num_correct_bool
+    {\@@_write:xx{4}{<shownumcorrect/>}}
+    {}
 }
 
-%% CLEARWRONG
+%% CLEAR WRONG
 \cs_new:Npn\@@_write_clear_wrong:{
-  \if\moodle@clearwrong
-    \@@_write:xx{4}{<clearwrong/>}
-  \fi
+  \bool_if:NTF\l_@@_clear_wrong_bool
+    {\@@_write:xx{4}{<clearwrong/>}}
+    {}
 }
 
 % TO DO: Implement hints
@@ -1368,13 +1369,13 @@
 %The Answers XML depends heavily on the question type.
 %Each type of question defines how it obtains answers from the LaTeX input,
 %how it typesets those in a PDF or DVI, and how it writes them as XML code.
-%It will write that XML to the macro \moodle@answers@xml,
+%It will write that XML to the macro \l_@@_answers_xml_tl,
 %which them gets written to the file when \@@_write_answers:
 %is invoked.
 
-\def\moodle@answers@xml{}%
+\def\l_@@_answers_xml_tl{}%
 \cs_new:Npn\@@_write_answers:{
-  \@@_write:xx{0}{\moodle@answers@xml}%
+  \@@_write:xx{0}{\l_@@_answers_xml_tl}%
 }%
 
 \newcommand\addto@xml[3][0]{%
@@ -1429,7 +1430,7 @@
 %     usually inside an itemize or enumerate environment.
 %   \item |\save|\meta{type}|answer#1|: 
 %     Processes the text of a single |\item| to save the information to memory,
-%     usually inside |\moodle@answers@xml|.
+%     usually inside |\l_@@_answers_xml_tl|.
 %   \item |\write|\meta{type}|question|:
 %     Writes the information, hitherto saved only in macros,
 %     into the XML file.
@@ -1437,32 +1438,32 @@
 % For example, to create the `shortanswer' question type,
 % we shall call 
 % \begin{Verbatim}[gobble=5,frame=single]
-%    \moodle@makefrontend{shortanswer}
+%    \@@_make_frontend{shortanswer}
 %    \def\moodle@shortanswer@latexprocessing{...}
 %    \def\saveshortansweranswer#1{...}
 %    \def\writeshortanswerquestion{...}
 % \end{Verbatim}
 % 
 %    \begin{macrocode}
-\def\moodle@makefrontend#1{%
+\cs_new:Npn\@@_make_frontend#1{%
   \NewEnviron{#1}[2][]{%
     \bgroup
       \moodleset{##1,questionname={##2}}%
       \expandafter\gatheritems\xa{\BODY}%
-      \let\moodle@questionheader=\gatheredheader
+      \let\l_@@_question_header_tl=\gatheredheader
       %First, the LaTeX processing
-      \item \textbf{\moodle@questionname}\par
+      \item \textbf{\l_@@_question_name_tl}\par
       \noindent
-      \moodle@questionheader
+      \l_@@_question_header_tl
       \csname moodle@#1@latexprocessing\endcsname
       %Now, writing information to XML
       \@moodle@ifgeneratexml{%
-        \xa\questiontext\xa{\moodle@questionheader}% Save the question text.
+        \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
         \bgroup
-          \gdef\moodle@answers@xml{}%
+          \gdef\l_@@_answers_xml_tl{}%
           \moodleset{feedback={}}%
           \xa\loopthroughitemswithcommand\xa{\csname save#1answer\endcsname}%
-          \passvalueaftergroup{\moodle@answers@xml}%
+          \passvalueaftergroup{\l_@@_answers_xml_tl}%
         \egroup
         \csname @@_write_#1_question:\endcsname
       }{}%
@@ -1473,7 +1474,7 @@
 %
 % \subsubsection{Essay Question Front-End}
 % The essay question is the only question type whose front end
-% is not yet created by |\moodle@makefrontend|.
+% is not yet created by |\@@_make_frontend|.
 % This is because of what it must do with its |\item|'s.
 % 
 %    \begin{macrocode}
@@ -1492,33 +1493,33 @@
   \bgroup
     \moodleset{#1,questionname={#2}}%
     \expandafter\gatheritems\expandafter{\BODY}%
-    \let\moodle@questionheader=\gatheredheader
+    \let\l_@@_question_header_tl=\gatheredheader
     %First, the LaTeX processing.
-      \item \textbf{\moodle@questionname}\par
+      \item \textbf{\l_@@_question_name_tl}\par
       \noindent
-      \moodle@questionheader
+      \l_@@_question_header_tl
       \csname moodle@essay@latexprocessing\endcsname
     %Now, writing information to memory.
     \@moodle@ifgeneratexml{%
-      \xa\questiontext\xa{\moodle@questionheader}% Save the question text.
+      \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
       \bgroup
-        \gdef\moodle@answers@xml{}%
+        \gdef\l_@@_answers_xml_tl{}%
         %
         \ifnum\c@numgathereditems=0\relax
-          \addto@xml[2]\moodle@answers@xml{<graderinfo format="html"><text/></graderinfo>}%
+          \addto@xml[2]\l_@@_answers_xml_tl{<graderinfo format="html"><text/></graderinfo>}%
         \else
-          \addto@xml[2]\moodle@answers@xml{<graderinfo format="html"><text><![CDATA[}%
+          \addto@xml[2]\l_@@_answers_xml_tl{<graderinfo format="html"><text><![CDATA[}%
           \ifnum\c@numgathereditems>1\relax
-            \addto@xml[4]\moodle@answers@xml{<ul>}%
+            \addto@xml[4]\l_@@_answers_xml_tl{<ul>}%
           \fi
           \loopthroughitemswithcommand{\moodle@savegraderinfo}%
           \ifnum\c@numgathereditems>1\relax
-            \addto@xml[4]\moodle@answers@xml{</ul>}%
+            \addto@xml[4]\l_@@_answers_xml_tl{</ul>}%
           \fi
-          \addto@xml[2]\moodle@answers@xml{]]></text></graderinfo>}%
+          \addto@xml[2]\l_@@_answers_xml_tl{]]></text></graderinfo>}%
         \fi
         %
-        \passvalueaftergroup{\moodle@answers@xml}%
+        \passvalueaftergroup{\l_@@_answers_xml_tl}%
       \egroup
       \@@_write_essay_question:
     }{}%
@@ -1530,18 +1531,18 @@
 %%%% Every line from \ifnum\c@numgathereditems=0\relax through its \else and \fi,
 %%%% with the exception of
 %%%%          \xa\loopthroughitemswithcommand\xa{\csname save#1answer\endcsname}%
-%%%% , does not exist in our current \moodle@makefrontend code.
+%%%% , does not exist in our current \@@_make_frontend code.
 %%%% How can we cope?
 %%%%
-%%%% Idea: change \moodle@makefrontend so that
+%%%% Idea: change \@@_make_frontend so that
 %%%%       1. if \c@numgathereditems=0, we don't do anything.
 %%%%       2. it calls a preamble and postamble around the \loopthroughitemswithcommand.
 %%%%          Like this:
 %%%%            
 %%%%      \@moodle@ifgeneratexml{%
-%%%%        \xa\questiontext\xa{\moodle@questionheader}% Save the question text.
+%%%%        \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
 %%%%        \bgroup
-%%%%          \gdef\moodle@answers@xml{}%
+%%%%          \gdef\l_@@_answers_xml_tl{}%
 %%%%          \moodleset{feedback={}}%
 %%%%          \@ifundefined{moodle@#1@answers@preamble}{}{}%
 %%%%          \csname moodle@#1@answers@preamble\endcsname
@@ -1552,7 +1553,7 @@
 %%%%          \fi
 %%%%          \@ifundefined{moodle@#1@answers@postamble}{}{}%
 %%%%          \csname moodle@#1@answers@postamble\endcsname
-%%%%          \passvalueaftergroup{\moodle@answers@xml}%
+%%%%          \passvalueaftergroup{\l_@@_answers_xml_tl}%
 %%%%        \egroup
 %%%%        \csname write#1question\endcsname
 %%%%      }{}%
@@ -1580,7 +1581,7 @@
 \def\moodle@savegraderinfo#1{%
   \bgroup
     \moodle@savegraderinfo@int#1\moodle@answer@rdelim
-    \passvalueaftergroup{\moodle@answers@xml}%
+    \passvalueaftergroup{\l_@@_answers_xml_tl}%
   \egroup
 }%
 \newcommand\moodle@savegraderinfo@int[1][]{%
@@ -1591,9 +1592,9 @@
   \xa\converttohtmlmacro\xa\moodle@answertext@html\xa{#1}%
   %\trim@spaces@in\moodle@answertext
   \ifnum\c@numgathereditems>1\relax
-    \addto@xml[6]{\moodle@answers@xml}{<li>\moodle@answertext@html</li>}%
+    \addto@xml[6]{\l_@@_answers_xml_tl}{<li>\moodle@answertext@html</li>}%
   \else
-    \addto@xml[4]{\moodle@answers@xml}{\moodle@answertext@html}%
+    \addto@xml[4]{\l_@@_answers_xml_tl}{\moodle@answertext@html}%
   \fi
 }%
 %    \end{macrocode}
@@ -1605,32 +1606,7 @@
 % TO DO: Make an optional argument for width?  This wouldn't affect Moodle,
 %        only the appearance in the PDF.  It doesn't seem worth it.
 
-% \NewEnviron{shortanswer}[2][]{%
-%   \bgroup
-%     \moodleset{#1,questionname={#2}}%
-%     \expandafter\gatheritems\xa{\BODY}%
-%     \let\moodle@questionheader=\gatheredheader
-%     %First, the LaTeX processing.
-%       \bigskip\par\noindent
-%       \fbox{\textbf{\moodle@questionname}}\par
-%       \noindent
-%       \moodle@questionheader
-%       \csname moodle@shortanswer@latexprocessing\endcsname
-%     %Now, writing information to memory.
-%     \@moodle@ifgeneratexml{%
-%       \xa\questiontext\xa{\moodle@questionheader}% Save the question text.
-%       \bgroup
-%         \gdef\moodle@answers@xml{}%
-%         \moodleset{feedback={}}%
-%         \xa\loopthroughitemswithcommand\xa{\csname saveshortansweranswer\endcsname}%
-%         \passvalueaftergroup{\moodle@answers@xml}%
-%       \egroup
-%       \csname writeshortanswerquestion\endcsname
-%     }{}%
-%   \egroup
-% }%
-
-\moodle@makefrontend{shortanswer}%
+\@@_make_frontend{shortanswer}
 
 % LATEX PROCESSING
 \def\moodle@shortanswer@latexprocessing{%
@@ -1647,10 +1623,10 @@
      \moodle@print@shortanswer@answer@int@int%
    }%
    \def\moodle@print@shortanswer@answer@int@int#1\@rdelim{%
-     \ifx\moodle@fraction\@hundred
+     \ifx\l_@@_fraction_tl\@hundred
        \item #1\quad$\checkmark$%
      \else
-       \item #1\quad (\moodle@fraction\%)%
+       \item #1\quad (\l_@@_fraction_tl\%)%
      \fi
    }%
 
@@ -1658,7 +1634,7 @@
 \def\saveshortansweranswer#1{%
   \bgroup
     \saveshortansweranswer@int#1\moodle@answer@rdelim
-    \passvalueaftergroup{\moodle@answers@xml}%
+    \passvalueaftergroup{\l_@@_answers_xml_tl}%
   \egroup
 }%
    \newcommand\saveshortansweranswer@int[1][]{%
@@ -1667,12 +1643,12 @@
    }%
    \def\saveshortansweranswer@int@int#1\moodle@answer@rdelim{%
      \def\moodle@answertext{#1}%
-     \addto@xml[2]{\moodle@answers@xml}{<answer~fraction="\moodle@fraction"~format="plain_text">}%
-     \addto@xml[4]{\moodle@answers@xml}{  <text>\moodle@answertext</text>}%
-     \ifx\moodle@feedback\@empty\relax\else
-       \addto@xml[4]{\moodle@answers@xml}{  <feedback~format="html"><text><![CDATA[<p>\moodle@feedback</p>]]></text></feedback>}%
+     \addto@xml[2]{\l_@@_answers_xml_tl}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}%
+     \addto@xml[4]{\l_@@_answers_xml_tl}{  <text>\moodle@answertext</text>}%
+     \ifx\l_@@_feedback_tl\@empty\relax\else
+       \addto@xml[4]{\l_@@_answers_xml_tl}{  <feedback~format="html"><text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text></feedback>}%
      \fi
-     \addto@xml[2]{\moodle@answers@xml}{</answer>}%
+     \addto@xml[2]{\l_@@_answers_xml_tl}{</answer>}%
    }%
 
 % WRITING QUESTION TO XML FILE
@@ -1688,7 +1664,7 @@
 % \subsubsection{Numerical Question Front-End}
 % 
 %    \begin{macrocode}
-\moodle@makefrontend{numerical}%
+\@@_make_frontend{numerical}%
 
 % LATEX PROCESSING
 \def\moodle@numerical@latexprocessing{%
@@ -1710,10 +1686,10 @@
      \else
        \edef\moodle@numericalprint@tolerance{\noexpand\pm\l_@@_tolerance_tl}%
      \fi
-     \ifx\moodle@fraction\@hundred
+     \ifx\l_@@_fraction_tl\@hundred
        \item $#1\moodle@numericalprint@tolerance\quad\checkmark$%
      \else
-       \item $#1\moodle@numericalprint@tolerance$\quad (\moodle@fraction\%)%
+       \item $#1\moodle@numericalprint@tolerance$\quad (\l_@@_fraction_tl\%)%
      \fi
    }%
 
@@ -1721,7 +1697,7 @@
 \def\savenumericalanswer#1{%
   \bgroup
     \savenumericalanswer@int#1\moodle@answer@rdelim
-    \passvalueaftergroup{\moodle@answers@xml}%
+    \passvalueaftergroup{\l_@@_answers_xml_tl}%
   \egroup
 }%
    \newcommand\savenumericalanswer@int[1][]{%
@@ -1730,13 +1706,13 @@
    }%
    \def\savenumericalanswer@int@int#1\moodle@answer@rdelim{%
      \def\moodle@answertext{#1}%
-     \addto@xml[2]{\moodle@answers@xml}{<answer~fraction="\moodle@fraction"~format="plain_text">}%
-     \addto@xml[4]{\moodle@answers@xml}{  <text>\moodle@answertext</text>}%
-     \addto@xml[4]{\moodle@answers@xml}{  <tolerance>\l_@@_tolerance_tl</tolerance>}%
-     \ifx\moodle@feedback\@empty\relax\else
-       \addto@xml[4]{\moodle@answers@xml}{  <feedback~format="html"><text><![CDATA[<p>\moodle@feedback</p>]]></text></feedback>}%
+     \addto@xml[2]{\l_@@_answers_xml_tl}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}%
+     \addto@xml[4]{\l_@@_answers_xml_tl}{  <text>\moodle@answertext</text>}%
+     \addto@xml[4]{\l_@@_answers_xml_tl}{  <tolerance>\l_@@_tolerance_tl</tolerance>}%
+     \ifx\l_@@_feedback_tl\@empty\relax\else
+       \addto@xml[4]{\l_@@_answers_xml_tl}{  <feedback~format="html"><text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text></feedback>}%
      \fi
-     \addto@xml[2]{\moodle@answers@xml}{</answer>}%
+     \addto@xml[2]{\l_@@_answers_xml_tl}{</answer>}%
    }%
 
 
@@ -1765,7 +1741,7 @@
 %   \item 11
 % \end{multi}%
 
-\moodle@makefrontend{multi}
+\@@_make_frontend{multi}
 
 % LATEX PROCESSING
 
@@ -1800,7 +1776,7 @@
       \else
         \item #1#2%
       \fi
-      $~(\moodle@fraction\%)$
+      $~(\l_@@_fraction_tl\%)$
       }
   }%
 
@@ -1834,7 +1810,7 @@
      \ifx\test@i\@star
        \stepcounter{moodle@numcorrectanswers}%
      \else
-       \global\addtolength{\moodle@pointspercorrect}{-\moodle@fraction pt}%
+       \global\addtolength{\moodle@pointspercorrect}{-\l_@@_fraction_tl pt}%
      \fi
    }%
    \def\moodle@setautopoints#1pt{%
@@ -1849,7 +1825,7 @@
 \def\savemultianswer#1{%
   \bgroup
     \savemultianswer@int#1\moodle@answer@rdelim
-    \passvalueaftergroup{\moodle@answers@xml}%
+    \passvalueaftergroup{\l_@@_answers_xml_tl}%
   \egroup
 }%
   \newcommand\savemultianswer@int[1][]{%
@@ -1867,13 +1843,13 @@
       \def\moodle@answertext{#1#2}%
     \fi
     \trim@spaces@in\moodle@answertext
-    \addto@xml[2]{\moodle@answers@xml}{<answer~fraction="\moodle@fraction"~format="html">}%
+    \addto@xml[2]{\l_@@_answers_xml_tl}{<answer~fraction="\l_@@_fraction_tl"~format="html">}%
     \xa\converttohtmlmacro\xa\moodle@answertext@html\xa{\moodle@answertext}%
-    \addto@xml[4]{\moodle@answers@xml}{  <text><![CDATA[<p>\moodle@answertext@html</p>]]></text>}%
-    \ifx\moodle@feedback\@empty\relax\else
-      \addto@xml[4]{\moodle@answers@xml}{  <feedback~format="html"><text><![CDATA[<p>\moodle@feedback</p>]]></text></feedback>}%
+    \addto@xml[4]{\l_@@_answers_xml_tl}{  <text><![CDATA[<p>\moodle@answertext@html</p>]]></text>}%
+    \ifx\l_@@_feedback_tl\@empty\relax\else
+      \addto@xml[4]{\l_@@_answers_xml_tl}{  <feedback~format="html"><text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text></feedback>}%
     \fi
-    \addto@xml[2]{\moodle@answers@xml}{</answer>}%
+    \addto@xml[2]{\l_@@_answers_xml_tl}{</answer>}%
   }%
 
 % WRITING QUESTION TO XML FILE
@@ -1893,7 +1869,7 @@
 %    \begin{macrocode}
 \let\answer=\hfill
 
-\moodle@makefrontend{matching}
+\@@_make_frontend{matching}
 
 % LATEX PROCESSING
 \def\moodle@matching@latexprocessing{%
@@ -1919,7 +1895,7 @@
 \long\def\savematchinganswer#1{%
   \bgroup
     \savematchinganswer@int#1\moodle@answer@rdelim%
-    \passvalueaftergroup{\moodle@answers@xml}%
+    \passvalueaftergroup{\l_@@_answers_xml_tl}%
   \egroup
 }%
    \newcommand\savematchinganswer@int[1][]{%
@@ -1936,21 +1912,21 @@
      \bool_if:NTF\l_@@_drag_and_drop_bool%
        {\xa\converttohtmlmacro\xa\moodle@subanswertext@htmlized\xa{\moodle@subanswertext}}%
        {}%
-     \addto@xml[2]{\moodle@answers@xml}{<subquestion~format="html">}%
+     \addto@xml[2]{\l_@@_answers_xml_tl}{<subquestion~format="html">}%
      \ifx\moodle@subquestiontext\@empty
-       \addto@xml[4]{\moodle@answers@xml}{  <text></text>}%
+       \addto@xml[4]{\l_@@_answers_xml_tl}{  <text></text>}%
      \else
-       \addto@xml[4]{\moodle@answers@xml}{  <text><![CDATA[<p>\moodle@subquestiontext@htmlized</p>]]></text>}%
+       \addto@xml[4]{\l_@@_answers_xml_tl}{  <text><![CDATA[<p>\moodle@subquestiontext@htmlized</p>]]></text>}%
      \fi
      \bool_if:NTF\l_@@_drag_and_drop_bool%
        {%\show\moodle@subanswertext@htmlized
-         \addto@xml[4]{\moodle@answers@xml}{  <answer~format="html"><text><![CDATA[<p>\moodle@subanswertext@htmlized</p>]]></text></answer>}}%
+         \addto@xml[4]{\l_@@_answers_xml_tl}{  <answer~format="html"><text><![CDATA[<p>\moodle@subanswertext@htmlized</p>]]></text></answer>}}%
         {%       \show\moodle@subanswertext
-          \addto@xml[4]{\moodle@answers@xml}{  <answer><text>\moodle@subanswertext</text></answer>}}%
-     \ifx\moodle@feedback\@empty\relax\else
-       \addto@xml[4]{\moodle@answers@xml}{  <feedback~format="html"><text><![CDATA[<p>\moodle@feedback</p>]]></text></feedback>}%
+          \addto@xml[4]{\l_@@_answers_xml_tl}{  <answer><text>\moodle@subanswertext</text></answer>}}%
+     \ifx\l_@@_feedback_tl\@empty\relax\else
+       \addto@xml[4]{\l_@@_answers_xml_tl}{  <feedback~format="html"><text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text></feedback>}%
      \fi
-     \addto@xml[2]{\moodle@answers@xml}{</subquestion>}%
+     \addto@xml[2]{\l_@@_answers_xml_tl}{</subquestion>}%
    }%
 
 % WRITING QUESTION TO XML FILE
@@ -1993,7 +1969,7 @@
     % A cloze question won't have any \item's in it, so we just use \BODY.
     \moodle@enableclozeenvironments
     %First, the LaTeX processing.
-      \item \textbf{\moodle@questionname}\par
+      \item \textbf{\l_@@_question_name_tl}\par
       \noindent
       \BODY
     %Now, writing information to memory.
@@ -2030,11 +2006,11 @@
   \bgroup
     \moodleset{default~grade=1,#1}%
     \expandafter\gatheritems\xa{\BODY}%
-    \let\moodle@questionheader=\gatheredheader
+    \let\l_@@_question_header_tl=\gatheredheader
     \ifhtmlizer@active
       %HTML version
       \def\moodle@clozemulti@output{}%
-      \xa\g@addto@macro\xa\moodle@clozemulti@output\xa{\moodle@questionheader}%
+      \xa\g@addto@macro\xa\moodle@clozemulti@output\xa{\l_@@_question_header_tl}%
       \def\clozemulti@coding{}%
       \edef\clozemulti@coding{\otherlbrace\csname moodle@default grade\endcsname:}%
       \ifcase\l_@@_display_mode_tl\relax
@@ -2057,7 +2033,7 @@
       \def\endclozemulti@code{\htmlize@patchendenvironment}%
     \else
       %LaTeX version
-      \moodle@questionheader% %Any introductory text just continues to be typeset.
+      \l_@@_question_header_tl% %Any introductory text just continues to be typeset.
       \def\cloze@multichoice@table@text{}%
       \loopthroughitemswithcommand{\moodle@print@clozemultichoice@answer}%
       \ifcase\l_@@_display_mode_tl\relax
@@ -2135,17 +2111,17 @@
     \def\moodle@answertext{#1#2}%
   \fi
   \trim@spaces@in\moodle@answertext
-  \ifx\moodle@fraction\@hundred
+  \ifx\l_@@_fraction_tl\@hundred
     \g@addto@macro\clozemulti@coding{=}%
   \fi
-  \ifnum0<\moodle@fraction\relax
-    \ifnum\moodle@fraction<100\relax
-      \xdef\clozemulti@coding{\expandonce\clozemulti@coding\otherpercent\moodle@fraction\otherpercent}%
+  \ifnum0<\l_@@_fraction_tl\relax
+    \ifnum\l_@@_fraction_tl<100\relax
+      \xdef\clozemulti@coding{\expandonce\clozemulti@coding\otherpercent\l_@@_fraction_tl\otherpercent}%
     \fi
   \fi
   \xdef\clozemulti@coding{\expandonce\clozemulti@coding\expandonce\moodle@answertext}%
-  \ifx\moodle@feedback\@empty\else
-    \xdef\clozemulti@coding{\expandonce\clozemulti@coding\otherbackslash\otherhash\moodle@feedback}%
+  \ifx\l_@@_feedback_tl\@empty\else
+    \xdef\clozemulti@coding{\expandonce\clozemulti@coding\otherbackslash\otherhash\l_@@_feedback_tl}%
   \fi
 }%
 %    \end{macrocode}
@@ -2156,13 +2132,13 @@
 \NewEnviron{clozenumerical}[1][]{%
   \bgroup
     \expandafter\gatheritems\expandafter{\BODY}%
-    \let\moodle@questionheader=\gatheredheader
+    \let\l_@@_question_header_tl=\gatheredheader
     \moodleset{default grade=1}%
     \moodleset{#1}%
     \ifhtmlizer@active
       %HTML version
       \def\moodle@clozenumerical@output{}%
-      \xa\g@addto@macro\xa\moodle@clozenumerical@output\xa{\moodle@questionheader}%
+      \xa\g@addto@macro\xa\moodle@clozenumerical@output\xa{\l_@@_question_header_tl}%
       \def\clozenumerical@coding{}%
       \edef\clozenumerical@coding{\otherlbrace\csname moodle@default grade\endcsname:NUMERICAL:}%
       \bgroup
@@ -2175,7 +2151,7 @@
       \def\endclozenumerical@code{\htmlize@patchendenvironment}%
     \else
       %LaTeX version
-      \moodle@questionheader% %Any introductory text just continues to be typeset.
+      \l_@@_question_header_tl% %Any introductory text just continues to be typeset.
       \def\cloze@numerical@table@text{}%
       \loopthroughitemswithcommand{\moodle@print@clozenumerical@answer}%
       \begin{tabular}[t]{|ll|}\firsthline
@@ -2198,10 +2174,10 @@
   \moodle@print@clozenumerical@answer@int@int%
 }%
 \def\moodle@print@clozenumerical@answer@int@int#1\@rdelim{%
-  \ifx\moodle@fraction\@hundred
+  \ifx\l_@@_fraction_tl\@hundred
     \def\moodle@clozenumericalprint@fraction{$\checkmark$}%
   \else
-    \edef\moodle@clozenumericalprint@fraction{(\moodle@fraction\%)}%
+    \edef\moodle@clozenumericalprint@fraction{(\l_@@_fraction_tl\%)}%
   \fi
   \ifdim0pt=\l_@@_tolerance_tl pt\relax
     \def\moodle@clozenumericalprint@tolerance{}%
@@ -2229,17 +2205,17 @@
   \fi
   \def\moodle@answertext{#1}%
   \trim@spaces@in\moodle@answertext
-  \ifx\moodle@fraction\@hundred
+  \ifx\l_@@_fraction_tl\@hundred
     \g@addto@macro\clozenumerical@coding{=}%
   \fi
-  \ifnum0<\moodle@fraction\relax
-    \ifnum\moodle@fraction<100\relax
-      \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherpercent\moodle@fraction\otherpercent}%
+  \ifnum0<\l_@@_fraction_tl\relax
+    \ifnum\l_@@_fraction_tl<100\relax
+      \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherpercent\l_@@_fraction_tl\otherpercent}%
     \fi
   \fi
   \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\moodle@answertext:\l_@@_tolerance_tl}%
-  \ifx\moodle@feedback\@empty\else
-    \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherbackslash\otherhash\moodle@feedback}%
+  \ifx\l_@@_feedback_tl\@empty\else
+    \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherbackslash\otherhash\l_@@_feedback_tl}%
   \fi
 }%
 %    \end{macrocode}
@@ -2250,7 +2226,7 @@
 \NewEnviron{clozeshortanswer}[1][]{%
   \bgroup
     \expandafter\gatheritems\expandafter{\BODY}%
-    \let\moodle@questionheader=\gatheredheader
+    \let\l_@@_question_header_tl=\gatheredheader
     \moodleset{default grade=1}%
     \moodleset{#1}%
     %Because nesting conditionals built by \csname doesn't work well,
@@ -2263,7 +2239,7 @@
     \ifhtmlizer@active
       %HTML version
       \def\moodle@clozeshortanswer@output{}%
-      \xa\g@addto@macro\xa\moodle@clozeshortanswer@output\xa{\moodle@questionheader}%
+      \xa\g@addto@macro\xa\moodle@clozeshortanswer@output\xa{\l_@@_question_header_tl}%
       \def\clozeshortanswer@coding{}%
       \ifnum\count0=1\relax
         \edef\clozeshortanswer@coding{\otherlbrace\csname moodle@default grade\endcsname:SHORTANSWER_C:}%
@@ -2280,7 +2256,7 @@
       \def\endclozeshortanswer@code{\htmlize@patchendenvironment}%
     \else
       %LaTeX version
-      \moodle@questionheader% %Any introductory text just continues to be typeset.
+      \l_@@_question_header_tl% %Any introductory text just continues to be typeset.
       \def\cloze@shortanswer@table@text{}%
       \loopthroughitemswithcommand{\moodle@print@clozeshortanswer@answer}%
       \ifnum\count0=1\relax
@@ -2306,10 +2282,10 @@
   \moodle@print@clozeshortanswer@answer@int@int%
 }%
 \def\moodle@print@clozeshortanswer@answer@int@int#1\@rdelim{%
-  \ifx\moodle@fraction\@hundred
+  \ifx\l_@@_fraction_tl\@hundred
     \def\moodle@clozeshortanswerprint@fraction{$\checkmark$}%
   \else
-    \edef\moodle@clozeshortanswerprint@fraction{(\moodle@fraction\%)}%
+    \edef\moodle@clozeshortanswerprint@fraction{(\l_@@_fraction_tl\%)}%
   \fi
   \xdef\moodle@clozeshortanswerprint@line{#1 & \moodle@clozeshortanswerprint@fraction}%
   \xa\g@addto@macro\xa\cloze@shortanswer@table@text\xa{\moodle@clozeshortanswerprint@line \\}%
@@ -2332,17 +2308,17 @@
   \fi
   \def\moodle@answertext{#1}%
   \trim@spaces@in\moodle@answertext
-  \ifx\moodle@fraction\@hundred
+  \ifx\l_@@_fraction_tl\@hundred
     \g@addto@macro\clozeshortanswer@coding{=}%
   \fi
-  \ifnum0<\moodle@fraction\relax
-    \ifnum\moodle@fraction<100\relax
-      \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\otherpercent\moodle@fraction\otherpercent}%
+  \ifnum0<\l_@@_fraction_tl\relax
+    \ifnum\l_@@_fraction_tl<100\relax
+      \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\otherpercent\l_@@_fraction_tl\otherpercent}%
     \fi
   \fi
   \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\moodle@answertext}%
-  \ifx\moodle@feedback\@empty\else
-    \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\otherbackslash\otherhash\moodle@feedback}%
+  \ifx\l_@@_feedback_tl\@empty\else
+    \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\otherbackslash\otherhash\l_@@_feedback_tl}%
   \fi
 }%
 %    \end{macrocode}
@@ -3248,13 +3224,11 @@
       \fi
     \fi
     %First, convert it to PNG
-    \edef\cmdline{\htmlize@imagemagick@convert\otherspace #2~-resize~\moodle@graphics@geometry~#2.png}%
     \msg_info:nn{moodle}{Converting~'#2'~to~PNG...^^J}%
-    \expandafter\immediate\expandafter\write18\expandafter{\cmdline}%
+    \ShellEscape{\htmlize@imagemagick@convert\otherspace #2~-resize~\moodle@graphics@geometry~#2.png}%
     %Next, convert the PNG to base64 encoding
-    \def\cmdline{\openssl\otherspace enc~-base64~-in~#2.png~-out~#2.enc}%
     \msg_info:nn{moodle}{Converting~'#2.png'~to~base64...^^J}%
-    \expandafter\immediate\expandafter\write18\expandafter{\cmdline}%
+    \ShellEscpe{\openssl\otherspace enc~-base64~-in~#2.png~-out~#2.enc}%
     %Now, save that base64 encoding in a TeX macro
     \def\moodle@newpic@baselxiv{}%
     \msg_info:nn{moodle}{Reading~base64~file~'#2.enc'...^^J}%
@@ -3318,14 +3292,11 @@
     \tikzset{external/force~remake}%
 
     \ifpdf
-      \def\pdftopng{\edef\gscmdline{\gs\otherspace -dBATCH~-dNOPAUSE~-sDEVICE=pngalpha~-sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-r200~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}%
-                    \expandafter\immediate\expandafter\write18\expandafter{\gscmdline}}%
+      \def\pdftopng{\ShellEscape{\gs\otherspace -dBATCH~-dNOPAUSE~-sDEVICE=pngalpha~-sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-r200~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}}
     \else
-      \def\pstopng{\edef\gscmdline{\gs\otherspace -dBATCH~-dNOPAUSE~-sDEVICE=pngalpha~-sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-r200~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.ps}%
-                    \expandafter\immediate\expandafter\write18\expandafter{\gscmdline}}%
+      \def\pstopng{\ShellEscape{\gs\otherspace -dBATCH~-dNOPAUSE~-sDEVICE=pngalpha~-sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-r200~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.ps}}
     \fi
-    \def\pngtobaselxiv{\edef\opensslcmdline{\openssl\otherspace enc~-base64~-in~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-out~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.enc}%
-                       \expandafter\immediate\expandafter\write18\expandafter{\opensslcmdline}}%
+    \def\pngtobaselxiv{\ShellEscape{\openssl\otherspace enc~-base64~-in~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-out~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.enc}}
 
     \let\moodle@oldtikzpicture=\tikzpicture
 
@@ -3397,15 +3368,15 @@
 % Finally, we clean up our mess by deleting the temporary PDF, PNG, and ENC 
 % files we created.
 %    \begin{macrocode}
-\AtEndDocument{%
+\AtEndDocument{
   \ifmoodle@tikzloaded
-    \@moodle@ifgeneratexml{%
+    \@moodle@ifgeneratexml{
       \ifwindows
-        \immediate\write18{del~\tikzexternalrealjob-tikztemp-*.*}%
+        \ShellEscape{del~\tikzexternalrealjob-tikztemp-*.*}
       \else
-        \immediate\write18{rm~\tikzexternalrealjob-tikztemp-*.*}%
+        \ShellEscape{rm~\tikzexternalrealjob-tikztemp-*.*}
       \fi
-    }{}%
+    }{}
   \fi
 }
 

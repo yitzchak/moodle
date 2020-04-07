@@ -789,13 +789,13 @@
 \newwrite\moodle@outfile
 \def\openmoodleout{%
   \immediate\openout\moodle@outfile=\outputfilename\relax
-  \writetomoodle{<?xml version="1.0" encoding="UTF-8"?>}%
-  \writetomoodle{<quiz>}%
-  \writetomoodle{ }%
+  \@@_write:xx{0}{<?xml~version="1.0"~encoding="UTF-8"?>}%
+  \@@_write:xx{0}{<quiz>}%
+  \@@_write:xx{0}{ }%
 }%
 \def\closemoodleout{%
-  \writetomoodle{ }%
-  \writetomoodle{</quiz>}%
+  \@@_write:xx{0}{ }%
+  \@@_write:xx{0}{</quiz>}%
   \immediate\closeout\moodle@outfile
 }%
 %    \end{macrocode}
@@ -825,7 +825,7 @@
 % preceded by an indent of \meta{n} spaces.
 % Note that this command |\edef|'s its second argument.
 %    \begin{macrocode}
-\newcommand\writetomoodle[2][0]{%
+\cs_new:Npn\@@_write:xx#1#2{%
   \edef\test@ii{#2}%
   \ifnum#1=0\relax
     \immediate\write\moodle@outfile{\test@ii}%
@@ -836,7 +836,7 @@
 }%
 %    \end{macrocode}
 % We now create the main |quiz| environment that will contain
-% the questions we write.  It outputs to XML as a |<question type="category">| tag.
+% the questions we write.  It outputs to XML as a |<question~type="category">| tag.
 %    \begin{macrocode}
 \newenvironment{quiz}[2][]%
   {\moodleset{#1}%
@@ -852,12 +852,12 @@
 
 {\catcode`\$=12\catcode`\ =12%
 \gdef\setcategory#1{%
-\writetomoodle{<question type="category">}%
-\writetomoodle{  <category>}%
-\writetomoodle{    <text>$module$/#1</text>}%
-\writetomoodle{  </category>}%
-\writetomoodle{</question>}%
-\writetomoodle{ }%
+\@@_write:xx{0}{<question~type="category">}%
+\@@_write:xx{0}{  <category>}%
+\@@_write:xx{0}{    <text>$module$/#1</text>}%
+\@@_write:xx{0}{  </category>}%
+\@@_write:xx{0}{</question>}%
+\@@_write:xx{0}{ }%
 }}%
 %    \end{macrocode}                       
 % The next utility takes a single macro control sequence |#1|,
@@ -895,7 +895,7 @@
 % 
 % The various options are set using key-value syntax of |xkeyval|.
 %    \begin{macrocode}
-\def\moodleset#1{\keys_set:nn{moodle}{#1}}%
+\def\moodleset#1{\keys_set:nn{moodle}{#1}}
 %    \end{macrocode}
 % We first define some macros that will help us write other macros.
 % Calling |\generate@moodle@write@code|\marg{name}|<|\meta{HTML tag}|>|\marg{text to write}
@@ -908,27 +908,27 @@
 % |\generate@moodle@write@code*| passes |#3| verbatim as text.
 % 
 % For example, 
-% |\generate@moodle@write@code{excuse}<EXC>{\theexcuse}|
+% |\@@_generate_write_html:nnn{excuse}{EXC}{\theexcuse}|
 % would expand to
 % \begin{Verbatim}[gobble=4,frame=single]
 %   \gdef\moodle@writeexcuse{%
 %     \xa\def\xa\test@iii\xa{\theexcuse}%
 %     \ifx\test@iii\@moodle@empty
-%       \writetomoodle[2]{  <EXC format="html"><text/></EXC>}%
+%       \@@_write:xx{2}{  <EXC format="html"><text/></EXC>}%
 %     \else
 %       \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{\theexcuse}%
-%       \writetomoodle[2]{  <EXC format="html">}%
-%       \writetomoodle[4]{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}%
-%       \writetomoodle[2]{  </EXC>}%
+%       \@@_write:xx{2}{  <EXC format="html">}%
+%       \@@_write:xx{4}{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}%
+%       \@@_write:xx{2}{  </EXC>}%
 %     \fi
 %   }%
 % \end{Verbatim}
 % but 
-% |\generate@moodle@write@code*{excuse}<EXC>{\theexcuse}|
+% |\@@_generate_write_data:nnn{excuse}{EXC}{\theexcuse}|
 % would expand only to
 % \begin{Verbatim}[gobble=4,frame=single]
 %   \gdef\moodle@writeexcuse{%
-%      \writetomoodle[2]{  <EXC>\theexcuse</EXC>}%
+%      \@@_write:xx{2}{  <EXC>\theexcuse</EXC>}%
 %   }
 % \end{Verbatim}
 %    \begin{macrocode}
@@ -936,32 +936,32 @@
   \@ifnextchar*\generate@moodle@write@data\generate@moodle@write@html
 }%
 
-\def\generate@moodle@write@html#1<#2>#3{%
+\cs_new:Npn\@@_generate_write_html:nnn#1#2#3{
   % #1 = NAME for \moodle@writeNAME
   % #2 = HTML tag
   % #3 = what, exactly, to write
-  \xa\gdef\csname moodle@write#1\endcsname{%
-    \xa\def\xa\test@iii\xa{#3}%
+  \cs_new:cpn{@@_write_#1:}{
+    \xa\def\xa\test@iii\xa{#3}
     \ifx\test@iii\@moodle@empty
-      \writetomoodle[2]{  <#2~format="html"><text/></#2>}%
+      \@@_write:xx{2}{  <#2~format="html"><text/></#2>}
     \else
-      \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#3}%
-      \writetomoodle[2]{  <#2~format="html">}%
-      \writetomoodle[4]{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}%
-      \writetomoodle[2]{  </#2>}%
+      \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#3}
+      \@@_write:xx{2}{  <#2~format="html">}
+      \@@_write:xx{4}{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+      \@@_write:xx{2}{  </#2>}
     \fi
-  }%
-}%
+  }
+}
 
 
-\def\generate@moodle@write@data*#1<#2>#3{%
+\cs_new:Npn\@@_generate_write_data:nnn#1#2#3{
   % #1 = NAME for \moodle@writeNAME
   % #2 = HTML tag
   % #3 = what, exactly, to write
-  \xa\gdef\csname moodle@write#1\endcsname{%
-    \writetomoodle[2]{  <#2>#3</#2>}%
-  }%
-}%
+  \cs_new:cpn{@@_write_#1:}{
+    \@@_write:xx{2}{  <#2>#3</#2>}
+  }
+}
 
 %    \end{macrocode}
 % \subsubsection{Keys for all question types}
@@ -977,7 +977,8 @@
   %\let\moodle@questiontext=\myoutput%
   \def\moodle@questiontext{#1}%
 }%
-\generate@moodle@write@code{questiontext}<questiontext>{\moodle@questiontext}%{%
+
+\@@_generate_write_html:nnn{question_text}{questiontext}{\moodle@questiontext}%{%
 
 \keys_define:nn{moodle}{
   %% QUESTIONNAME
@@ -1004,15 +1005,15 @@
   hidden .initial:n = false
 }
 
-%% QUESTIONNAME
-\gdef\moodle@writequestionname{
-  \writetomoodle[2]{<name>}
-  \writetomoodle[4]{  <text>\moodle@questionname</text>}
-  \writetomoodle[2]{</name>}
+%% QUESTION NAME
+\cs_new:Npn\@@_write_question_name:{
+  \@@_write:xx{2}{<name>}
+  \@@_write:xx{4}{  <text>\moodle@questionname</text>}
+  \@@_write:xx{2}{</name>}
 }
 
 %% PENALTY FOR WRONG ATTEMPT
-\generate@moodle@write@code*{penalty}<penalty>{\moodle@penalty}
+\@@_generate_write_data:nnn{penalty}{penalty}{\moodle@penalty}
 
 %% FEEDBACK
 % Moodle allows for feedback tailored to each question,
@@ -1020,26 +1021,26 @@
 % We shall use the key 'feedback' to record both kinds of feedback,
 % relying on TeX's grouping mechanism to keep them apart.
 % When it comes time to write them to XML,
-% \moodle@writegeneralfeedback uses the HTML tag <generalfeedback>
-% whereas \moodle@writefeedback uses the tag <feedback>.
+% \@@_write_general_feedback: uses the HTML tag <generalfeedback>
+% whereas \@@_write_feedback: uses the tag <feedback>.
 % Note that the general feedback is NOT inherited by each answer!
-\generate@moodle@write@code{generalfeedback}<generalfeedback>{\moodle@feedback}
-\generate@moodle@write@code{feedback}<feedback>{\moodle@feedback}
+\@@_generate_write_html:nnn{general_feedback}{generalfeedback}{\moodle@feedback}
+\@@_generate_write_html:nnn{feedback}{feedback}{\moodle@feedback}
 
 %% DEFAULT GRADE
 %How many points the quiz question is worth.
-\generate@moodle@write@code*{defaultgrade}<defaultgrade>{\moodle@defaultgrade}
+\@@_generate_write_data:nnn{default_grade}{defaultgrade}{\moodle@defaultgrade}
 
 %% HIDDEN
-\generate@moodle@write@code*{hidden}<hidden>{\bool_if:NTF\moodle@hidden{1}{0}}
+\@@_generate_write_data:nnn{hidden}{hidden}{\bool_if:NTF\moodle@hidden{1}{0}}
 
-\def\moodle@writecommondata{
-  \moodle@writequestionname
-  \moodle@writequestiontext
-  \moodle@writedefaultgrade
-  \moodle@writegeneralfeedback
-  \moodle@writepenalty
-  \moodle@writehidden
+\cs_new:Npn\@@_write_common_data:{
+  \@@_write_question_name:
+  \@@_write_question_text:
+  \@@_write_default_grade:
+  \@@_write_general_feedback:
+  \@@_write_penalty:
+  \@@_write_hidden:
 }
 
 % TO DO: 'tags' (i.e., keywords)
@@ -1063,30 +1064,30 @@
 %The key 'multiple' is an antonym to 'single'.
 \keys_define:nn{moodle}{
   %% SINGLE and MULTIPLE -- for multichoice, is there 1 right answer or more than 1?
-  single .bool_set:N = \moodle@single,
+  single .bool_set:N = \l_@@_single_bool,
   single .default:n = true,
   single .initial:n = true,
-  multiple .bool_set_inverse:N = \moodle@single,
+  multiple .bool_set_inverse:N = \l_@@_single_bool,
 
   %% SHUFFLE ANSWERS
-  shuffle .bool_set:N = \moodle@shuffle,
+  shuffle .bool_set:N = \l_@@_shuffle_bool,
   shuffle .default:n = true,
   shuffle .initial:n = true,
 
   %% NUMBERING -- for numbering of multichoice questions
   numbering .choice:,
-  numbering / alpha  .code:n   = \def\moodle@numbering{abc},
-  numbering / alph   .code:n   = \def\moodle@numbering{abc},
-  numbering / Alpha  .code:n   = \def\moodle@numbering{ABC},
-  numbering / Alph   .code:n   = \def\moodle@numbering{ABC},
-  numbering / arabic .code:n   = \def\moodle@numbering{123},
-  numbering / roman  .code:n   = \def\moodle@numbering{iii},
-  numbering / Roman  .code:n   = \def\moodle@numbering{IIII},
-  numbering / abc    .tl_set:N = \moodle@numbering,
-  numbering / ABC    .tl_set:N = \moodle@numbering,
-  numbering / 123    .tl_set:N = \moodle@numbering,
-  numbering / iii    .tl_set:N = \moodle@numbering,
-  numbering / IIII   .tl_set:N = \moodle@numbering,
+  numbering / alpha  .code:n   = \cs_set:Npn\l_@@_numbering_tl{abc},
+  numbering / alph   .code:n   = \cs_set:Npn\l_@@_numbering_tl{abc},
+  numbering / Alpha  .code:n   = \cs_set:Npn\l_@@_numbering_tl{ABC},
+  numbering / Alph   .code:n   = \cs_set:Npn\l_@@_numbering_tl{ABC},
+  numbering / arabic .code:n   = \cs_set:Npn\l_@@_numbering_tl{123},
+  numbering / roman  .code:n   = \cs_set:Npn\l_@@_numbering_tl{iii},
+  numbering / Roman  .code:n   = \cs_set:Npn\l_@@_numbering_tl{IIII},
+  numbering / abc    .tl_set:N = \l_@@_numbering_tl,
+  numbering / ABC    .tl_set:N = \l_@@_numbering_tl,
+  numbering / 123    .tl_set:N = \l_@@_numbering_tl,
+  numbering / iii    .tl_set:N = \l_@@_numbering_tl,
+  numbering / IIII   .tl_set:N = \l_@@_numbering_tl,
   numbering .default:n = abc,
   numbering .initial:n = abc,
   answer~numbering .meta:n = {numbering=#1},
@@ -1098,21 +1099,21 @@
 
   %% DISPLAY MODE -- affects Cloze multiple choice questions only.
   display~mode .choice:,
-  display~mode / inline     .code:n = \def\moodle@multi@mode{0},
-  display~mode / vertical   .code:n = \def\moodle@multi@mode{1},
-  display~mode / horizontal .code:n = \def\moodle@multi@mode{2},
+  display~mode / inline     .code:n = \cs_set:Npn\l_@@_display_mode_tl{0},
+  display~mode / vertical   .code:n = \cs_set:Npn\l_@@_display_mode_tl{1},
+  display~mode / horizontal .code:n = \cs_set:Npn\l_@@_display_mode_tl{2},
   display~mode .default:n = inline,
   display~mode .initial:n = inline
 }
 
 %% SINGLE and MULTIPLE -- for multichoice, is there 1 right answer or more than 1?
-\generate@moodle@write@code*{single}<single>{\bool_if:NTF\moodle@single{true}{false}}
+\@@_generate_write_data:nnn{single}{single}{\bool_if:NTF\l_@@_single_bool{true}{false}}
 
 %% SHUFFLE ANSWERS
-\generate@moodle@write@code*{shuffle}<shuffleanswers>{\bool_if:NTF\moodle@shuffle{1}{0}}
+\@@_generate_write_data:nnn{shuffle}{shuffleanswers}{\bool_if:NTF\l_@@_shuffle_bool{1}{0}}
 
 %% NUMBERING -- for numbering of multichoice questions
-\generate@moodle@write@code*{answernumbering}<answernumbering>{\moodle@numbering}%
+\@@_generate_write_data:nnn{answer_numbering}{answernumbering}{\l_@@_numbering_tl}%
       
 \def\@moodle@alpha{alpha}%
 \def\@moodle@Alpha{Alpha}%
@@ -1128,22 +1129,22 @@
 \def\@moodle@IIII{IIII}%
 \def\@moodle@none{none}%
 \def\moodle@obeynumberingstyle{%
-  \ifx\moodle@numbering\@moodle@abc
+  \ifx\l_@@_numbering_tl\@moodle@abc
     \renewcommand\theenumii{\alph{enumii}}%
   \fi
-  \ifx\moodle@numbering\@moodle@ABC
+  \ifx\l_@@_numbering_tl\@moodle@ABC
     \renewcommand\theenumii{\Alph{enumii}}%
   \fi
-  \ifx\moodle@numbering\@moodle@arabicnumbers
+  \ifx\l_@@_numbering_tl\@moodle@arabicnumbers
     \renewcommand\theenumii{\arabic{enumii}}%
   \fi
-  \ifx\moodle@numbering\@moodle@iii
+  \ifx\l_@@_numbering_tl\@moodle@iii
     \renewcommand\theenumii{\roman{enumii}}%
   \fi
-  \ifx\moodle@numbering\@moodle@IIII
+  \ifx\l_@@_numbering_tl\@moodle@IIII
     \renewcommand\theenumii{\Roman{enumii}}%
   \fi
-  \ifx\moodle@numbering\@moodle@none
+  \ifx\l_@@_numbering_tl\@moodle@none
     \renewcommand\labelenumii{$\bullet$~}%
   \fi
 }
@@ -1157,34 +1158,34 @@
 %    \begin{macrocode}
 \keys_define:nn{moodle}{
   %% TOLERANCE
-  tolerance .tl_set:N = \moodle@tolerance,
+  tolerance .tl_set:N = \l_@@_tolerance_tl,
   tolerance .default:n = 0,
   tolerance .initial:n = 0,
 
   %% SHOW UNITS
   show~units .choice:,
-  show~units / none      .code:n = \def\moodle@showunits{0},
-  show~units / text      .code:n = \def\moodle@showunits{1},
-  show~units / select    .code:n = \def\moodle@showunits{2},
-  show~units / drop~down .code:n = \def\moodle@showunits{3},
+  show~units / none      .code:n = \def\l_@@_show_units_tl{0},
+  show~units / text      .code:n = \def\l_@@_show_units_tl{1},
+  show~units / select    .code:n = \def\l_@@_show_units_tl{2},
+  show~units / drop~down .code:n = \def\l_@@_show_units_tl{3},
   show~units .default:n = none,
   show~units .initial:n = none,
 
   %% UNIT GRADING TYPE
   unit~grading~type .choice:,
-  unit~grading~type / none     .code:n = \def\moodle@unitgradingtype{0},
-  unit~grading~type / response .code:n = \def\moodle@unitgradingtype{1},
-  unit~grading~type / question .code:n = \def\moodle@unitgradingtype{2},
+  unit~grading~type / none     .code:n = \def\l_@@_unit_grading_type_tl{0},
+  unit~grading~type / response .code:n = \def\l_@@_unit_grading_type_tl{1},
+  unit~grading~type / question .code:n = \def\l_@@_unit_grading_type_tl{2},
   unit~grading~type .default:n = none,
   unit~grading~type .initial:n = none,
 
   %% PENALTY FOR INCORRECT UNITS
-  unit~penalty .tl_set:N = \moodle@unitpenalty,
+  unit~penalty .tl_set:N = \l_@@_unit_penalty_tl,
   unit~penalty .default:n = 0.1,
   unit~penalty .initial:n = 0.1,
 
   %% UNITS LEFT
-  units~left .bool_set:N = \moodle@unitsleft,
+  units~left .bool_set:N = \l_@@_units_left_bool,
   units~left .default:n = true,
   units~left .initial:n = false,
 
@@ -1197,34 +1198,34 @@
 %like <answer fraction=100 tolerance=0.03>.
 
 %% SHOW UNITS
-\generate@moodle@write@code*{showunits}<showunits>{\moodle@showunits}%
+\@@_generate_write_data:nnn{show_units}{showunits}{\l_@@_show_units_tl}%
 
 %% UNIT GRADING TYPE
-\generate@moodle@write@code*{unitgradingtype}<unitgradingtype>{\moodle@unitgradingtype}%
+\@@_generate_write_data:nnn{unit_grading_type}{unitgradingtype}{\l_@@_unit_grading_type_tl}%
 
 %% PENALTY FOR INCORRECT UNITS
-\generate@moodle@write@code*{unitpenalty}<unitpenalty>{\moodle@unitpenalty}%
+\@@_generate_write_data:nnn{unit_penalty}{unitpenalty}{\l_@@_unit_penalty_tl}%
 
 %% UNITS LEFT
-\generate@moodle@write@code*{unitsleft}<unitsleft>{\bool_if:NTF\moodle@unitsleft{1}{0}}%
+\@@_generate_write_data:nnn{units_left}{unitsleft}{\bool_if:NTF\l_@@_units_left_bool{1}{0}}%
 
 %% UNITS
-\prop_new:N\moodle@units%
+\prop_new:N\l_@@_units_prop%
 
-\def\def_unit:nn#1#2{\prop_put:Nnn\moodle@units{#1}{\ifblank{#2}{1}{#2}}}%
-\def\def_unit:n#1{\prop_put:Nnn\moodle@units{#1}{1}}%
+\def\def_unit:nn#1#2{\prop_put:Nnn\l_@@_units_prop{#1}{\ifblank{#2}{1}{#2}}}%
+\def\def_unit:n#1{\prop_put:Nnn\l_@@_units_prop{#1}{1}}%
 
-\def\moodle@writeunit#1#2{%
-  \writetomoodle[4]{<unit>}
-  \writetomoodle[6]{  <unit_name>#1</unit_name>}
-  \writetomoodle[6]{  <multiplier>\ifblank{#2}{1}{#2}</multiplier>}
-  \writetomoodle[4]{</unit>}}%
+\cs_new:Npn\@@_write_unit:xx#1#2{%
+  \@@_write:xx{4}{<unit>}
+  \@@_write:xx{6}{  <unit_name>#1</unit_name>}
+  \@@_write:xx{6}{  <multiplier>\ifblank{#2}{1}{#2}</multiplier>}
+  \@@_write:xx{4}{</unit>}}%
 
-\def\moodle@writeunits{
-  \ifdefempty{\moodle@units}{}{
-    \writetomoodle[2]{<units>}
-    \prop_map_function:NN\moodle@units\moodle@writeunit
-    \writetomoodle[2]{</units>}
+\cs_new:Npn\@@_write_units:{
+  \prop_if_empty:NTF\l_@@_units_prop{}{
+    \@@_write:xx{2}{<units>}
+    \prop_map_function:NN\l_@@_units_prop\@@_write_unit:xx
+    \@@_write:xx{2}{</units>}
   }
 }
 
@@ -1234,14 +1235,14 @@
 \keys_define:nn{moodle}{
   %% CASE SENSITIVE
   % We make 'usecase' a synonym for 'case sensitive'.
-  case~sensitive .bool_set:N = \moodle@casesensitive,
+  case~sensitive .bool_set:N = \l_@@_case_sensitive_bool,
   case~sensitive .default:n = true,
   case~sensitive .initial:n = false,
   use~case .meta:n = {case~sensitive=#1}
 }
 
 %% CASE SENSITIVE
-\generate@moodle@write@code*{usecase}<usecase>{\bool_if:NTF\moodle@casesensitive{1}{0}}
+\@@_generate_write_data:nnn{usecase}{usecase}{\bool_if:NTF\l_@@_case_sensitive_bool{1}{0}}
 
 %    \end{macrocode}
 % \subsubsection{Keys for matching questions}
@@ -1250,7 +1251,7 @@
 \keys_define:nn{moodle}{
   %% DRAG-AND-DROP FORMAT
   % We make 'dd' and 'dragdrop' and 'drag and drop' synonyms for 'draganddrop'.
-  drag~and~drop .bool_set:N = \moodle@draganddrop,
+  drag~and~drop .bool_set:N = \l_@@_drag_and_drop_bool,
   drag~and~drop .default:n = true,
   drag~and~drop .initial:n = false,
   draganddrop .meta:n = {drag~and~drop=#1},
@@ -1299,23 +1300,33 @@
 }
 
 %% EDITOR
-\generate@moodle@write@code*{responseformat}<responseformat>{\moodle@responseformat}%
+\@@_generate_write_data:nnn
+  {response_format}{responseformat}
+  {\moodle@responseformat}%
 
 %% RESPONSE REQUIRED
-\generate@moodle@write@code*{responserequired}<responserequired>{\bool_if:NTF\moodle@responserequired{1}{0}}%
+\@@_generate_write_data:nnn
+  {response_required}{responserequired}
+  {\bool_if:NTF\moodle@responserequired{1}{0}}%
 
 %% RESPONSEFIELDLINES
-\generate@moodle@write@code*{responsefieldlines}<responsefieldlines>{\moodle@responsefieldlines}%
+\@@_generate_write_data:nnn
+  {response_field_lines}{responsefieldlines}
+  {\moodle@responsefieldlines}
 %Make synonyms 'input box size' or 'height' or 'lines'?
 
 %% ATTACHMENTS ALLOWED
-\generate@moodle@write@code*{attachmentsallowed}<attachments>{\ifdefstring{\moodle@attachmentsallowed}{unlimited}{-1}{\moodle@attachmentsallowed}}%
+\@@_generate_write_data:nnn
+  {attachments_allowed}{attachments}
+  {\ifdefstring{\moodle@attachmentsallowed}{unlimited}{-1}{\moodle@attachmentsallowed}}
 
 %% ATTACHMENTS REQUIRED
-\generate@moodle@write@code*{attachmentsrequired}<attachmentsrequired>{\moodle@attachmentsrequired}
+\@@_generate_write_data:nnn
+  {attachments_required}{attachmentsrequired}
+  {\moodle@attachmentsrequired}
 
 %% RESPONSE TEMPLATE
-\generate@moodle@write@code{responsetemplate}<responsetemplate>{\moodle@responsetemplate}
+\@@_generate_write_html:nnn{responsetemplate}{responsetemplate}{\moodle@responsetemplate}
 
 %    \end{macrocode}
 % \subsubsection{Hint tags}
@@ -1337,14 +1348,14 @@
 %% SHOWNUMCORRECT
 \gdef\moodle@writeshownumcorrect{
   \if\moodle@shownumcorrect
-    \writetomoodle[4]{<shownumcorrect/>}
+    \@@_write:xx{4}{<shownumcorrect/>}
   \fi
 }
 
 %% CLEARWRONG
 \gdef\moodle@writeclearwrong{
   \if\moodle@clearwrong
-    \writetomoodle[4]{<clearwrong/>}
+    \@@_write:xx{4}{<clearwrong/>}
   \fi
 }
 
@@ -1363,7 +1374,7 @@
 
 \def\moodle@answers@xml{}%
 \gdef\moodle@writeanswers{%
-  \writetomoodle{\moodle@answers@xml}%
+  \@@_write:xx{0}{\moodle@answers@xml}%
 }%
 
 \newcommand\addto@xml[3][0]{%
@@ -1549,8 +1560,8 @@
 %%%% \...@preamble \...@postamble macros to be \relax if they don't exist already.
 
 \gdef\writeessayquestion{%
-  \writetomoodle{<question type="essay">}%
-    \moodle@writecommondata%
+  \@@_write:xx{0}{<question~type="essay">}%
+    \@@_write_common_data:
     \moodle@writeresponserequired%
     \moodle@writeresponseformat%
     \moodle@writeresponsefieldlines%
@@ -1558,7 +1569,7 @@
     \moodle@writeattachmentsrequired%
     \moodle@writeanswers% The 'answers' XML really contains the grader info.
     \moodle@writeresponsetemplate%
-  \writetomoodle{</question>}%
+  \@@_write:xx{0}{</question>}%
 }%
 
 \def\moodle@print@essay@answer#1{%
@@ -1666,11 +1677,11 @@
 
 % WRITING QUESTION TO XML FILE
 \gdef\writeshortanswerquestion{%
-  \writetomoodle{<question~type="shortanswer">}%
-    \moodle@writecommondata%
+  \@@_write:xx{0}{<question~type="shortanswer">}%
+    \@@_write_common_data:%
     \moodle@writeusecase%
     \moodle@writeanswers%
-  \writetomoodle{</question>}%
+  \@@_write:xx{0}{</question>}%
 }%
 %    \end{macrocode}
 %
@@ -1694,10 +1705,10 @@
      \moodle@print@numerical@answer@int@int%
    }%
    \def\moodle@print@numerical@answer@int@int#1\@rdelim{%
-     \ifdim0pt=\moodle@tolerance pt\relax
+     \ifdim0pt=\l_@@_tolerance_tl pt\relax
        \def\moodle@numericalprint@tolerance{}%
      \else
-       \edef\moodle@numericalprint@tolerance{\noexpand\pm\moodle@tolerance}%
+       \edef\moodle@numericalprint@tolerance{\noexpand\pm\l_@@_tolerance_tl}%
      \fi
      \ifx\moodle@fraction\@hundred
        \item $#1\moodle@numericalprint@tolerance\quad\checkmark$%
@@ -1719,11 +1730,11 @@
    }%
    \def\savenumericalanswer@int@int#1\moodle@answer@rdelim{%
      \def\moodle@answertext{#1}%
-     \addto@xml[2]{\moodle@answers@xml}{<answer fraction="\moodle@fraction" format="plain_text">}%
+     \addto@xml[2]{\moodle@answers@xml}{<answer~fraction="\moodle@fraction"~format="plain_text">}%
      \addto@xml[4]{\moodle@answers@xml}{  <text>\moodle@answertext</text>}%
-     \addto@xml[4]{\moodle@answers@xml}{  <tolerance>\moodle@tolerance</tolerance>}%
+     \addto@xml[4]{\moodle@answers@xml}{  <tolerance>\l_@@_tolerance_tl</tolerance>}%
      \ifx\moodle@feedback\@empty\relax\else
-       \addto@xml[4]{\moodle@answers@xml}{  <feedback format="html"><text><![CDATA[<p>\moodle@feedback</p>]]></text></feedback>}%
+       \addto@xml[4]{\moodle@answers@xml}{  <feedback~format="html"><text><![CDATA[<p>\moodle@feedback</p>]]></text></feedback>}%
      \fi
      \addto@xml[2]{\moodle@answers@xml}{</answer>}%
    }%
@@ -1731,15 +1742,15 @@
 
 % WRITING QUESTION TO XML FILE
 \gdef\writenumericalquestion{%
-  \writetomoodle{<question type="numerical">}%
-    \moodle@writecommondata%
-    \moodle@writeshowunits%
-    \moodle@writeunitgradingtype%
-    \moodle@writeunitpenalty%
-    \moodle@writeunitsleft%
-    \moodle@writeunits%
+  \@@_write:xx{0}{<question~type="numerical">}%
+    \@@_write_common_data:%
+    \@@_write_show_units:%
+    \@@_write_unit_grading_type:%
+    \@@_write_unit_penalty:%
+    \@@_write_units_left:%
+    \@@_write_units:%
     \moodle@writeanswers%
-  \writetomoodle{</question>}%
+  \@@_write:xx{0}{</question>}%
 }%
 %    \end{macrocode}
 %
@@ -1775,7 +1786,7 @@
   }%
   \def\moodle@print@multichoice@answer@int@int#1#2\@rdelim{%
     \def\test@i{#1}%
-    \bool_if:NTF\moodle@single%
+    \bool_if:NTF\l_@@_single_bool%
       {
       \ifx\test@i\@star
         \item #2$~\checkmark$%
@@ -1848,7 +1859,7 @@
   \def\savemultianswer@int@int#1#2\moodle@answer@rdelim{%
     \def\test@i{#1}%
     \ifx\test@i\@star
-      \bool_if:NTF\moodle@single%
+      \bool_if:NTF\l_@@_single_bool%
         {\moodleset{fraction=100}}%
         {\moodleset{fraction=\moodle@autopoints}}%
       \def\moodle@answertext{#2}%
@@ -1867,13 +1878,13 @@
 
 % WRITING QUESTION TO XML FILE
 \gdef\writemultiquestion{%
-  \writetomoodle{<question type="multichoice">}%
-    \moodle@writecommondata%
-    \moodle@writesingle%
-    \moodle@writeshuffle%
-    \moodle@writeanswernumbering%
+  \@@_write:xx{0}{<question~type="multichoice">}%
+    \@@_write_common_data:%
+    \@@_write_single:%
+    \@@_write_shuffle:%
+    \@@_write_answer_numbering:%
     \moodle@writeanswers%
-  \writetomoodle{</question>}%
+  \@@_write:xx{0}{</question>}%
 }%
 %    \end{macrocode}
 %
@@ -1922,7 +1933,7 @@
      \trim@spaces@in\moodle@subquestiontext
      \xa\converttohtmlmacro\xa\moodle@subquestiontext@htmlized\xa{\moodle@subquestiontext}%
      \trim@spaces@in\moodle@subanswertext
-     \bool_if:NTF\moodle@draganddrop%
+     \bool_if:NTF\l_@@_drag_and_drop_bool%
        {\xa\converttohtmlmacro\xa\moodle@subanswertext@htmlized\xa{\moodle@subanswertext}}%
        {}%
      \addto@xml[2]{\moodle@answers@xml}{<subquestion~format="html">}%
@@ -1931,7 +1942,7 @@
      \else
        \addto@xml[4]{\moodle@answers@xml}{  <text><![CDATA[<p>\moodle@subquestiontext@htmlized</p>]]></text>}%
      \fi
-     \bool_if:NTF\moodle@draganddrop%
+     \bool_if:NTF\l_@@_drag_and_drop_bool%
        {%\show\moodle@subanswertext@htmlized
          \addto@xml[4]{\moodle@answers@xml}{  <answer~format="html"><text><![CDATA[<p>\moodle@subanswertext@htmlized</p>]]></text></answer>}}%
         {%       \show\moodle@subanswertext
@@ -1945,13 +1956,13 @@
 % WRITING QUESTION TO XML FILE
 \gdef\writematchingquestion{%
   %
-    \writetomoodle{<question~type="\bool_if:NTF\moodle@draganddrop{ddmatch}{matching}">}%
-    \moodle@writecommondata%
-    \moodle@writesingle%
-    \moodle@writeshuffle%
-    \moodle@writeanswernumbering%
+    \@@_write:xx{0}{<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}%
+    \@@_write_common_data:%
+    \@@_write_single:
+    \@@_write_shuffle:
+    \@@_write_answer_numbering:%
     \moodle@writeanswers%
-  \writetomoodle{</question>}%
+  \@@_write:xx{0}{</question>}%
 %  \gdef\moodle@answ
 }%
 %    \end{macrocode}
@@ -1977,7 +1988,7 @@
 
 \NewEnviron{cloze}[2][]{%
   \bgroup
-    \moodleset{default grade=1}%
+    \moodleset{default~grade=1}%
     \moodleset{#1,questionname={#2}}%
     % A cloze question won't have any \item's in it, so we just use \BODY.
     \moodle@enableclozeenvironments
@@ -2004,9 +2015,9 @@
 
 % WRITING QUESTION TO XML FILE
 \gdef\writeclozequestion{%
-  \writetomoodle{<question type="cloze">}%
-    \moodle@writecommondata%
-  \writetomoodle{</question>}%
+  \@@_write:xx{0}{<question~type="cloze">}%
+    \@@_write_common_data:%
+  \@@_write:xx{0}{</question>}%
 }%
 %    \end{macrocode}
 %
@@ -2026,7 +2037,7 @@
       \xa\g@addto@macro\xa\moodle@clozemulti@output\xa{\moodle@questionheader}%
       \def\clozemulti@coding{}%
       \edef\clozemulti@coding{\otherlbrace\csname moodle@default grade\endcsname:}%
-      \ifcase\moodle@multi@mode\relax
+      \ifcase\l_@@_display_mode_tl\relax
         % Case 0: dropdown box style
         \g@addto@macro{\clozemulti@coding}{MULTICHOICE:}%
       \or
@@ -2049,7 +2060,7 @@
       \moodle@questionheader% %Any introductory text just continues to be typeset.
       \def\cloze@multichoice@table@text{}%
       \loopthroughitemswithcommand{\moodle@print@clozemultichoice@answer}%
-      \ifcase\moodle@multi@mode\relax
+      \ifcase\l_@@_display_mode_tl\relax
         %Case 0: dropdown box style
         \begin{tabular}[t]{|l|}\firsthline% (\firsthline is from the array package.)
           \cloze@multichoice@table@text%
@@ -2081,7 +2092,7 @@
   % Case 0: "(answer) \\ \hline"
   % Case 1: "\item (answer)"
   % Case 2: "$\bullet~$(answer)\hfill"
-  \ifcase\moodle@multi@mode\relax
+  \ifcase\l_@@_display_mode_tl\relax
     \relax% Case 0
   \or
     \g@addto@macro\cloze@multichoice@table@text{\item}% Case 1
@@ -2094,7 +2105,7 @@
   \else
      \g@addto@macro\cloze@multichoice@table@text{#1#2}%
   \fi
-  \ifcase\moodle@multi@mode\relax
+  \ifcase\l_@@_display_mode_tl\relax
     \g@addto@macro{\cloze@multichoice@table@text}{\\ \hline}% Case 0
   \or
     \relax% Case 1
@@ -2192,10 +2203,10 @@
   \else
     \edef\moodle@clozenumericalprint@fraction{(\moodle@fraction\%)}%
   \fi
-  \ifdim0pt=\moodle@tolerance pt\relax
+  \ifdim0pt=\l_@@_tolerance_tl pt\relax
     \def\moodle@clozenumericalprint@tolerance{}%
   \else
-    \edef\moodle@clozenumericalprint@tolerance{\noexpand\pm\moodle@tolerance}%
+    \edef\moodle@clozenumericalprint@tolerance{\noexpand\pm\l_@@_tolerance_tl}%
   \fi
   \xdef\moodle@clozenumericalprint@line{$#1\moodle@clozenumericalprint@tolerance$ & \moodle@clozenumericalprint@fraction}%
   \xa\g@addto@macro\xa\cloze@numerical@table@text\xa{\moodle@clozenumericalprint@line \\}%
@@ -2226,7 +2237,7 @@
       \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherpercent\moodle@fraction\otherpercent}%
     \fi
   \fi
-  \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\moodle@answertext:\moodle@tolerance}%
+  \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\moodle@answertext:\l_@@_tolerance_tl}%
   \ifx\moodle@feedback\@empty\else
     \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherbackslash\otherhash\moodle@feedback}%
   \fi
@@ -3237,11 +3248,11 @@
       \fi
     \fi
     %First, convert it to PNG
-    \edef\cmdline{\htmlize@imagemagick@convert\otherspace #2 -resize \moodle@graphics@geometry\otherspace #2.png}%
+    \edef\cmdline{\htmlize@imagemagick@convert\otherspace #2~-resize~\moodle@graphics@geometry~#2.png}%
     \msg_info:nn{moodle}{Converting~'#2'~to~PNG...^^J}%
     \expandafter\immediate\expandafter\write18\expandafter{\cmdline}%
     %Next, convert the PNG to base64 encoding
-    \def\cmdline{\openssl\otherspace enc -base64 -in #2.png -out #2.enc}%
+    \def\cmdline{\openssl\otherspace enc~-base64~-in~#2.png~-out~#2.enc}%
     \msg_info:nn{moodle}{Converting~'#2.png'~to~base64...^^J}%
     \expandafter\immediate\expandafter\write18\expandafter{\cmdline}%
     %Now, save that base64 encoding in a TeX macro
@@ -3307,13 +3318,13 @@
     \tikzset{external/force~remake}%
 
     \ifpdf
-      \def\pdftopng{\edef\gscmdline{\gs\otherspace -dBATCH -dNOPAUSE -sDEVICE=pngalpha -sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png -r200 \tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}%
+      \def\pdftopng{\edef\gscmdline{\gs\otherspace -dBATCH~-dNOPAUSE~-sDEVICE=pngalpha~-sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-r200~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}%
                     \expandafter\immediate\expandafter\write18\expandafter{\gscmdline}}%
     \else
-      \def\pstopng{\edef\gscmdline{\gs\otherspace -dBATCH -dNOPAUSE -sDEVICE=pngalpha -sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png -r200 \tikzexternalrealjob-tikztemp-\the\numconvertedpictures.ps}%
+      \def\pstopng{\edef\gscmdline{\gs\otherspace -dBATCH~-dNOPAUSE~-sDEVICE=pngalpha~-sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-r200~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.ps}%
                     \expandafter\immediate\expandafter\write18\expandafter{\gscmdline}}%
     \fi
-    \def\pngtobaselxiv{\edef\opensslcmdline{\openssl\otherspace enc -base64 -in \tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png -out \tikzexternalrealjob-tikztemp-\the\numconvertedpictures.enc}%
+    \def\pngtobaselxiv{\edef\opensslcmdline{\openssl\otherspace enc~-base64~-in~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-out~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.enc}%
                        \expandafter\immediate\expandafter\write18\expandafter{\opensslcmdline}}%
 
     \let\moodle@oldtikzpicture=\tikzpicture
@@ -3358,7 +3369,7 @@
       \let\tikzpicture\relax\let\endtikzpicture\relax
       \NewEnviron{tikzpicture}[1][]{%
         \global\advance\numpicturesread by 1\relax
-        \edef\htmlize@imagetag{<IMG SRC="data:image/png;base64,\csname picbaselxiv@\the\numpicturesread\endcsname">}%
+        \edef\htmlize@imagetag{<img src="data:image/png;base64,\csname picbaselxiv@\the\numpicturesread\endcsname">}%
         \xa\g@addto@macro\xa\htmlize@output\xa{\htmlize@imagetag}%
       }[\htmlize@patchendenvironment]%
     }%

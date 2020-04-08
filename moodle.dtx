@@ -787,17 +787,26 @@
 % Next, we create macros to open and close the Moodle XML file
 % we will be writing.
 %    \begin{macrocode}
-\newwrite\moodle@outfile
-\def\openmoodleout{%
-  \immediate\openout\moodle@outfile=\outputfilename\relax
+
+\cs_new:Npn\@@_incr_indent:{
+  \int_incr:N\g_@@_xml_indent_int}
+
+\cs_new:Npn\@@_decr_indent:{
+  \int_decr:N\g_@@_xml_indent_int}
+
+\cs_new:Npn\@@_write_header:{%
+  \int_gzero_new:N\g_@@_xml_indent_int{0}
+  \iow_new:N\g_@@_xml_iow
+  \iow_open:Nn\g_@@_xml_iow\outputfilename
   \@@_write:xx{0}{<?xml~version="1.0"~encoding="UTF-8"?>}%
   \@@_write:xx{0}{<quiz>}%
+  \@@_incr_indent:
   \@@_write:xx{0}{ }%
 }%
-\def\closemoodleout{%
-  \@@_write:xx{0}{ }%
+\cs_new:Npn\@@_write_footer:{%
+  \@@_decr_indent:
   \@@_write:xx{0}{</quiz>}%
-  \immediate\closeout\moodle@outfile
+  \iow_close:N\g_@@_xml_iow
 }%
 %    \end{macrocode}
 % To both make this |.sty| file and the XML output more readable,
@@ -805,6 +814,8 @@
 % The macro |\calculateindent|\marg{$n$} globally defines 
 % |\moodle@indent| to be a string of \meta{$n$} |\otherspace|'s.
 %    \begin{macrocode}
+
+
 \def\calculateindent#1{%
   \bgroup
     \count0=\number#1\relax
@@ -826,14 +837,12 @@
 % preceded by an indent of \meta{n} spaces.
 % Note that this command |\edef|'s its second argument.
 %    \begin{macrocode}
-\cs_new:Npn\@@_write:xx#1#2{%
-  \edef\test@ii{#2}%
-  \ifnum#1=0\relax
-    \immediate\write\moodle@outfile{\test@ii}%
-  \else
-    \calculateindent{#1}%
-    \immediate\write\moodle@outfile{\moodle@indent\trim@pre@space{\test@ii}}%
-  \fi
+\cs_new:Npn\g_@@_indent_str#1{\otherspace\otherspace}
+
+\cs_new:Npn\@@_write:xx#1#2{
+  \iow_now:Nx\g_@@_xml_iow{
+    \int_step_function:nN\g_@@_xml_indent_int\g_@@_indent_str
+    #2}
 }%
 %    \end{macrocode}
 % We now create the main |quiz| environment that will contain
@@ -841,22 +850,26 @@
 %    \begin{macrocode}
 \newenvironment{quiz}[2][]%
   {\moodleset{#1}%
-   \@moodle@ifgeneratexml{%
-     \openmoodleout%
-     \setcategory{#2}%
+   \@@_if_generate_xml:TF{%
+     \@@_write_header:%
+     \@@_write_category:x{#2}%
     }{}%
     \subsection*{#2}%
     \begin{enumerate}%
    }
   {\end{enumerate}%
-   \@moodle@ifgeneratexml{\closemoodleout}{}}
+   \@@_if_generate_xml:TF{\@@_write_footer:}{}}
 
 {\catcode`\$=12\catcode`\ =12%
-\gdef\setcategory#1{%
+\cs_new:Npn\@@_write_category:x#1{%
 \@@_write:xx{0}{<question~type="category">}%
-\@@_write:xx{0}{  <category>}%
-\@@_write:xx{0}{    <text>$module$/#1</text>}%
-\@@_write:xx{0}{  </category>}%
+\@@_incr_indent:
+  \@@_write:xx{0}{<category>}%
+    \@@_incr_indent:
+    \@@_write:xx{0}{<text>$module$/#1</text>}%
+    \@@_decr_indent:
+  \@@_write:xx{0}{</category>}%
+\@@_decr_indent:
 \@@_write:xx{0}{</question>}%
 \@@_write:xx{0}{ }%
 }}%
@@ -874,7 +887,7 @@
 % \subsubsection{Main Switch: to create XML or not}
 % 
 %    \begin{macrocode}
-\long\def\@moodle@ifgeneratexml#1#2{%
+\cs_new:Npn\@@_if_generate_xml:TF#1#2{%
   % If we are generating XML, do #1; otherwise do #2.
   \tikzifexternalizing{%
     % This run of LaTeX is currently ONLY generating a Tikz image
@@ -942,15 +955,17 @@
   % #2 = HTML tag
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
+    \@@_write:xx{2}{<#2~format="html">}
+    \@@_incr_indent:
     \xa\def\xa\test@iii\xa{#3}
     \ifx\test@iii\@moodle@empty
-      \@@_write:xx{2}{  <#2~format="html"><text/></#2>}
+      \@@_write:xx{2}{<text/>}
     \else
       \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#3}
-      \@@_write:xx{2}{  <#2~format="html">}
-      \@@_write:xx{4}{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
-      \@@_write:xx{2}{  </#2>}
+      \@@_write:xx{4}{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
     \fi
+    \@@_decr_indent:
+    \@@_write:xx{2}{</#2>}
   }
 }
 
@@ -960,7 +975,7 @@
   % #2 = HTML tag
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
-    \@@_write:xx{2}{  <#2>#3</#2>}
+    \@@_write:xx{2}{<#2>#3</#2>}
   }
 }
 
@@ -1009,7 +1024,9 @@
 %% QUESTION NAME
 \cs_new:Npn\@@_write_question_name:{
   \@@_write:xx{2}{<name>}
-  \@@_write:xx{4}{  <text>\l_@@_question_name_tl</text>}
+  \@@_incr_indent:
+  \@@_write:xx{4}{<text>\l_@@_question_name_tl</text>}
+  \@@_decr_indent:
   \@@_write:xx{2}{</name>}
 }
 
@@ -1218,14 +1235,18 @@
 
 \cs_new:Npn\@@_write_unit:xx#1#2{%
   \@@_write:xx{4}{<unit>}
-  \@@_write:xx{6}{  <unit_name>#1</unit_name>}
-  \@@_write:xx{6}{  <multiplier>\ifblank{#2}{1}{#2}</multiplier>}
+  \@@_incr_indent:
+  \@@_write:xx{6}{<unit_name>#1</unit_name>}
+  \@@_write:xx{6}{<multiplier>\ifblank{#2}{1}{#2}</multiplier>}
+  \@@_decr_indent:
   \@@_write:xx{4}{</unit>}}%
 
 \cs_new:Npn\@@_write_units:{
   \prop_if_empty:NTF\l_@@_units_prop{}{
     \@@_write:xx{2}{<units>}
+    \@@_incr_indent:
     \prop_map_function:NN\l_@@_units_prop\@@_write_unit:xx
+    \@@_decr_indent:
     \@@_write:xx{2}{</units>}
   }
 }
@@ -1370,13 +1391,10 @@
 %Each type of question defines how it obtains answers from the LaTeX input,
 %how it typesets those in a PDF or DVI, and how it writes them as XML code.
 %It will write that XML to the macro \l_@@_answers_xml_tl,
-%which them gets written to the file when \@@_write_answers:
+%which them gets written to the file when \@@_write_answers:x
 %is invoked.
 
 \def\l_@@_answers_xml_tl{}%
-\cs_new:Npn\@@_write_answers:{
-  \@@_write:xx{0}{\l_@@_answers_xml_tl}%
-}%
 
 \newcommand\addto@xml[3][0]{%
   % #1 = spaces to indent (default=0)
@@ -1445,6 +1463,7 @@
 % \end{Verbatim}
 % 
 %    \begin{macrocode}
+
 \cs_new:Npn\@@_make_frontend#1{%
   \NewEnviron{#1}[2][]{%
     \bgroup
@@ -1455,21 +1474,43 @@
       \item \textbf{\l_@@_question_name_tl}\par
       \noindent
       \l_@@_question_header_tl
-      \csname moodle@#1@latexprocessing\endcsname
+      \csname @@_print_#1_question:\endcsname
       %Now, writing information to XML
-      \@moodle@ifgeneratexml{%
+      \@@_if_generate_xml:TF{%
         \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
-        \bgroup
-          \gdef\l_@@_answers_xml_tl{}%
-          \moodleset{feedback={}}%
-          \xa\loopthroughitemswithcommand\xa{\csname save#1answer\endcsname}%
-          \passvalueaftergroup{\l_@@_answers_xml_tl}%
-        \egroup
         \csname @@_write_#1_question:\endcsname
       }{}%
     \egroup
   }%
 }
+
+
+% WRITING ANSWERS
+\def\@@_write_answer:xx#1#2{%
+  \message{@@_write_answer:xx~'#1'~'#2'}
+  \bgroup
+    \@@_write_answer_{#1}#2\moodle@answer@rdelim
+  \egroup
+}%
+
+\NewDocumentCommand \@@_write_answer_ {mO{}} {
+  \message{@@_write_answer_~'#1'~'#2'}
+ \moodleset{fraction=100,#2} %%%%%% DEFAULT VALUE IS 100%
+ \@@_write_answer__{#1}
+}
+
+\def\@@_write_answer__#1#2\moodle@answer@rdelim{
+  \message{@@_write_answer__~'#1'~'#2'}
+  \csname @@_write_#1_answer:x\endcsname{#2}}
+
+\cs_new:Npn\@@_write_answers:x#1{
+  \message{@@_write_answers:x~'#1'}
+  \bgroup
+    \moodleset{feedback={}}%
+    \def\doitem##1{\@@_write_answer:xx{#1}{##1}}
+    \loopthroughitemswithcommand{\doitem}
+  \egroup}
+
 %    \end{macrocode}
 %
 % \subsubsection{Essay Question Front-End}
@@ -1478,7 +1519,7 @@
 % This is because of what it must do with its |\item|'s.
 % 
 %    \begin{macrocode}
-\def\moodle@essay@latexprocessing{%
+\cs_new:Npn\@@_print_essay_question:{
   % Moodle cannot automatically grade an essay, 
   % but if the user puts \item's in, we can list them in an itemize as notes.
   \ifnum\c@numgathereditems>0\relax
@@ -1498,9 +1539,9 @@
       \item \textbf{\l_@@_question_name_tl}\par
       \noindent
       \l_@@_question_header_tl
-      \csname moodle@essay@latexprocessing\endcsname
+      \@@_print_essay_question:
     %Now, writing information to memory.
-    \@moodle@ifgeneratexml{%
+    \@@_if_generate_xml:TF{%
       \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
       \bgroup
         \gdef\l_@@_answers_xml_tl{}%
@@ -1539,7 +1580,7 @@
 %%%%       2. it calls a preamble and postamble around the \loopthroughitemswithcommand.
 %%%%          Like this:
 %%%%            
-%%%%      \@moodle@ifgeneratexml{%
+%%%%      \@@_if_generate_xml:TF{%
 %%%%        \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
 %%%%        \bgroup
 %%%%          \gdef\l_@@_answers_xml_tl{}%
@@ -1562,15 +1603,18 @@
 
 \cs_new:Npn\@@_write_essay_question:{
   \@@_write:xx{0}{<question~type="essay">}
+    \@@_incr_indent:
     \@@_write_common_data:
     \@@_write_response_required:
     \@@_write_response_format:
     \@@_write_response_field_lines:
     \@@_write_attachments_allowed:
     \@@_write_attachements_required:
-    \@@_write_answers:% The 'answers' XML really contains the grader info.
+    \@@_write_answers:x{essay} % The 'answers' XML really contains the grader info.
     \@@_write_response_template:
+    \@@_decr_indent:
   \@@_write:xx{0}{</question>}
+  \@@_write:xx{0}{ }
 }
 
 \def\moodle@print@essay@answer#1{%
@@ -1609,7 +1653,7 @@
 \@@_make_frontend{shortanswer}
 
 % LATEX PROCESSING
-\def\moodle@shortanswer@latexprocessing{%
+\cs_new:Npn\@@_print_shortanswer_question:{
   \begin{itemize} \setlength\itemsep{0pt}\setlength\parskip{0pt}%
     \loopthroughitemswithcommand{\moodle@print@shortanswer@answer}%
   \end{itemize}%
@@ -1630,34 +1674,30 @@
      \fi
    }%
 
-% SAVING ANSWERS TO MEMORY
-\def\saveshortansweranswer#1{%
-  \bgroup
-    \saveshortansweranswer@int#1\moodle@answer@rdelim
-    \passvalueaftergroup{\l_@@_answers_xml_tl}%
-  \egroup
-}%
-   \newcommand\saveshortansweranswer@int[1][]{%
-     \moodleset{fraction=100,#1}%                  %%%%%% DEFAULT VALUE IS 100%
-     \saveshortansweranswer@int@int%
-   }%
-   \def\saveshortansweranswer@int@int#1\moodle@answer@rdelim{%
-     \def\moodle@answertext{#1}%
-     \addto@xml[2]{\l_@@_answers_xml_tl}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}%
-     \addto@xml[4]{\l_@@_answers_xml_tl}{  <text>\moodle@answertext</text>}%
-     \ifx\l_@@_feedback_tl\@empty\relax\else
-       \addto@xml[4]{\l_@@_answers_xml_tl}{  <feedback~format="html"><text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text></feedback>}%
-     \fi
-     \addto@xml[2]{\l_@@_answers_xml_tl}{</answer>}%
-   }%
+\cs_new:Npn\@@_write_shortanswer_answer:x#1{
+  \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
+    \@@_incr_indent:
+    \@@_write:xx{0}{<text>#1</text>}
+    \ifx\l_@@_feedback_tl\@empty\relax\else
+      \@@_write:xx{0}{<feedback~format="html">}
+        \@@_incr_indent:
+        \@@_write:xx{0}{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
+        \@@_decr_indent:
+      \@@_write:xx{0}{</feedback>}
+    \fi
+  \@@_decr_indent:
+  \@@_write:xx{0}{</answer>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_shortanswer_question:{
   \@@_write:xx{0}{<question~type="shortanswer">}
+    \@@_incr_indent:
     \@@_write_common_data:
     \@@_write_use_case:
-    \@@_write_answers:
+    \@@_write_answers:x{shortanswer}
+    \@@_decr_indent:
   \@@_write:xx{0}{</question>}
+  \@@_write:xx{0}{ }
 }
 %    \end{macrocode}
 %
@@ -1667,7 +1707,7 @@
 \@@_make_frontend{numerical}%
 
 % LATEX PROCESSING
-\def\moodle@numerical@latexprocessing{%
+\cs_new:Npn\@@_print_numerical_question:{
       \begin{itemize} \setlength\itemsep{0pt}\setlength\parskip{0pt}%
         \loopthroughitemswithcommand{\moodle@print@numerical@answer}%
       \end{itemize}%
@@ -1693,40 +1733,35 @@
      \fi
    }%
 
-% SAVING ANSWERS TO MEMORY
-\def\savenumericalanswer#1{%
-  \bgroup
-    \savenumericalanswer@int#1\moodle@answer@rdelim
-    \passvalueaftergroup{\l_@@_answers_xml_tl}%
-  \egroup
-}%
-   \newcommand\savenumericalanswer@int[1][]{%
-     \moodleset{fraction=100,#1}%                  %%%%%% DEFAULT VALUE IS 100%
-     \savenumericalanswer@int@int%
-   }%
-   \def\savenumericalanswer@int@int#1\moodle@answer@rdelim{%
-     \def\moodle@answertext{#1}%
-     \addto@xml[2]{\l_@@_answers_xml_tl}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}%
-     \addto@xml[4]{\l_@@_answers_xml_tl}{  <text>\moodle@answertext</text>}%
-     \addto@xml[4]{\l_@@_answers_xml_tl}{  <tolerance>\l_@@_tolerance_tl</tolerance>}%
-     \ifx\l_@@_feedback_tl\@empty\relax\else
-       \addto@xml[4]{\l_@@_answers_xml_tl}{  <feedback~format="html"><text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text></feedback>}%
-     \fi
-     \addto@xml[2]{\l_@@_answers_xml_tl}{</answer>}%
-   }%
-
+\cs_new:Npn\@@_write_numerical_answer:x#1{
+  \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
+    \@@_incr_indent:
+    \@@_write:xx{0}{<text>#1</text>}
+    \@@_write:xx{0}{<tolerance>\l_@@_tolerance_tl</tolerance>}
+    \ifx\l_@@_feedback_tl\@empty\relax\else
+      \@@_write:xx{0}{<feedback~format="html">}
+        \@@_incr_indent:
+        \@@_write:xx{0}{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
+        \@@_decr_indent:
+      \@@_write:xx{0}{</feedback>}
+    \fi
+  \@@_decr_indent:
+  \@@_write:xx{0}{</answer>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_numerical_question:{
   \@@_write:xx{0}{<question~type="numerical">}
+    \@@_incr_indent:
     \@@_write_common_data:
     \@@_write_show_units:
     \@@_write_unit_grading_type:
     \@@_write_unit_penalty:
     \@@_write_units_left:
     \@@_write_units:
-    \@@_write_answers:
+    \@@_write_answers:x{numerical}
+    \@@_decr_indent:
   \@@_write:xx{0}{</question>}
+  \@@_write:xx{0}{ }
 }%
 %    \end{macrocode}
 %
@@ -1745,7 +1780,7 @@
 
 % LATEX PROCESSING
 
-\def\moodle@multi@latexprocessing{%
+\cs_new:Npn\@@_print_multi_question:{
       \moodle@countcorrectanswers
       \begin{enumerate}\moodle@obeynumberingstyle
                        %\renewcommand{\theenumi}{\alph{enumi}}%
@@ -1855,12 +1890,15 @@
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_multi_question:{
   \@@_write:xx{0}{<question~type="multichoice">}%
+    \@@_incr_indent:
     \@@_write_common_data:%
     \@@_write_single:%
     \@@_write_shuffle:%
     \@@_write_answer_numbering:%
-    \@@_write_answers:%
-  \@@_write:xx{0}{</question>}%
+    \@@_write_answers:x{multi}
+    \@@_decr_indent:
+  \@@_write:xx{0}{</question>}
+  \@@_write:xx{0}{ }
 }%
 %    \end{macrocode}
 %
@@ -1872,7 +1910,7 @@
 \@@_make_frontend{matching}
 
 % LATEX PROCESSING
-\def\moodle@matching@latexprocessing{%
+\cs_new:Npn\@@_print_matching_question:{
   \bgroup
     \let\answer=\hfill
     \begin{enumerate}\renewcommand{\theenumi}{\alph{enumi}}\setlength\itemsep{0pt}\setlength\parskip{0pt}%
@@ -1932,13 +1970,16 @@
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_matching_question:{
   %
-    \@@_write:xx{0}{<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}%
+  \@@_write:xx{0}{<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}
+    \@@_incr_indent:
     \@@_write_common_data:%
     \@@_write_single:
     \@@_write_shuffle:
     \@@_write_answer_numbering:%
-    \@@_write_answers:%
-  \@@_write:xx{0}{</question>}%
+    \@@_write_answers:x{matching}
+    \@@_decr_indent:
+  \@@_write:xx{0}{</question>}
+  \@@_write:xx{0}{ }
 %  \gdef\moodle@answ
 }%
 %    \end{macrocode}
@@ -1973,7 +2014,7 @@
       \noindent
       \BODY
     %Now, writing information to memory.
-    \@moodle@ifgeneratexml{%
+    \@@_if_generate_xml:TF{%
       \xa\questiontext\xa{\BODY}% Save the question text as HTML.
       \@@_write_cloze_question:
     }{}%
@@ -1992,8 +2033,11 @@
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_cloze_question:{
   \@@_write:xx{0}{<question~type="cloze">}%
+    \@@_incr_indent:
     \@@_write_common_data:%
-  \@@_write:xx{0}{</question>}%
+    \@@_decr_indent:
+  \@@_write:xx{0}{</question>}
+  \@@_write:xx{0}{ }
 }%
 %    \end{macrocode}
 %
@@ -3316,7 +3360,7 @@
       \moodle@endtikzpicture@hook
     }
     \def\moodle@endtikzpicture@hook{%
-      \@moodle@ifgeneratexml{%
+      \@@_if_generate_xml:TF{%
         \ifpdf
           \msg_info:nnxx{moodle}{convert}{\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}{png}
           \pdftopng
@@ -3370,7 +3414,7 @@
 %    \begin{macrocode}
 \AtEndDocument{
   \ifmoodle@tikzloaded
-    \@moodle@ifgeneratexml{
+    \@@_if_generate_xml:TF{
       \ifwindows
         \ShellEscape{del~\tikzexternalrealjob-tikztemp-*.*}
       \else

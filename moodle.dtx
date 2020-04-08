@@ -735,6 +735,7 @@
 
 \ProcessOptions
 
+\RequirePackage{xparse}
 \RequirePackage{etex}    %Expansion control, detokenization, etc.
 \RequirePackage{etoolbox}%List management
 \RequirePackage{environ} %To be able to take environment body as a macro argument
@@ -1302,17 +1303,17 @@
   required .meta:n = {response~required=#1},
 
   %% RESPONSEFIELDLINES
-  response~field~lines .int_set:N = \l_@@_response_field_lines_tl,
+  response~field~lines .tl_set_x:N = \l_@@_response_field_lines_tl,
   response~field~lines .default:n = 15,
   response~field~lines .initial:n = 15,
 
   %% ATTACHMENTS ALLOWED
-  attachments~allowed .tl_set:N = \l_@@_attachments_allowed_tl,
+  attachments~allowed .code:n = \ifstrequal{#1}{unlimited}{\def\l_@@_attachments_allowed_tl{-1}}{\def\l_@@_attachments_allowed_tl{#1}},
   attachments~allowed .default:n = 1,
   attachments~allowed .initial:n = 0,
 
   %% ATTACHMENTS REQUIRED
-  attachments~required .int_set:N = \l_@@_attachments_required_int,
+  attachments~required .tl_set_x:N = \l_@@_attachments_required_int,
   attachments~required .default:n = 1,
   attachments~required .initial:n = 0,
 
@@ -1340,7 +1341,7 @@
 %% ATTACHMENTS ALLOWED
 \@@_generate_write_data:nnn
   {attachments_allowed}{attachments}
-  {\ifdefstring{\l_@@_attachments_allowed_tl}{unlimited}{-1}{\l_@@_attachments_allowed_tl}}
+  {\l_@@_attachments_allowed_tl}
 
 %% ATTACHMENTS REQUIRED
 \@@_generate_write_data:nnn
@@ -1485,29 +1486,27 @@
 }
 
 
-% WRITING ANSWERS
-\def\@@_write_answer:xx#1#2{%
-  \message{@@_write_answer:xx~'#1'~'#2'}
+% WRITING/PRINTING ANSWERS
+\cs_new:Npn\@@_apply_answer:xxx#1#2#3{%
   \bgroup
-    \@@_write_answer_{#1}#2\moodle@answer@rdelim
+    \@@_apply_answer_opt{#1}{#2}#3\l_@@_answer_delim
   \egroup
 }%
 
-\NewDocumentCommand \@@_write_answer_ {mO{}} {
-  \message{@@_write_answer_~'#1'~'#2'}
- \moodleset{fraction=100,#2} %%%%%% DEFAULT VALUE IS 100%
- \@@_write_answer__{#1}
+\NewDocumentCommand \@@_apply_answer_opt { m m s O{} } {
+  \IfBooleanTF{#3}
+    {\moodleset{fraction=100}}
+    {\moodleset{fraction=0}}
+  \moodleset{feedback=,#4}
+  \@@_apply_answer_text{#1}{#2}
 }
 
-\def\@@_write_answer__#1#2\moodle@answer@rdelim{
-  \message{@@_write_answer__~'#1'~'#2'}
-  \csname @@_write_#1_answer:x\endcsname{#2}}
+\def\@@_apply_answer_text#1#2#3\l_@@_answer_delim{
+  \csname @@_#1_#2_answer:x\endcsname{#3}}
 
-\cs_new:Npn\@@_write_answers:x#1{
-  \message{@@_write_answers:x~'#1'}
+\cs_new:Npn\@@_map_answers:xx#1#2{
   \bgroup
-    \moodleset{feedback={}}%
-    \def\doitem##1{\@@_write_answer:xx{#1}{##1}}
+    \def\doitem##1{\@@_apply_answer:xxx{#1}{#2}{##1}}
     \loopthroughitemswithcommand{\doitem}
   \egroup}
 
@@ -1530,42 +1529,44 @@
   \fi
 }
 
-\NewEnviron{essay}[2][]{%
-  \bgroup
-    \moodleset{#1,questionname={#2}}%
-    \expandafter\gatheritems\expandafter{\BODY}%
-    \let\l_@@_question_header_tl=\gatheredheader
+\@@_make_frontend{essay}
+
+% \NewEnviron{essay}[2][]{%
+%   \bgroup
+%     \moodleset{#1,questionname={#2}}%
+%     \expandafter\gatheritems\expandafter{\BODY}%
+%     \let\l_@@_question_header_tl=\gatheredheader
     %First, the LaTeX processing.
-      \item \textbf{\l_@@_question_name_tl}\par
-      \noindent
-      \l_@@_question_header_tl
-      \@@_print_essay_question:
+%       \item \textbf{\l_@@_question_name_tl}\par
+%       \noindent
+%       \l_@@_question_header_tl
+%       \@@_print_essay_question:
     %Now, writing information to memory.
-    \@@_if_generate_xml:TF{%
-      \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
-      \bgroup
-        \gdef\l_@@_answers_xml_tl{}%
+%     \@@_if_generate_xml:TF{%
+%       \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
+%       \bgroup
+%         \gdef\l_@@_answers_xml_tl{}%
         %
-        \ifnum\c@numgathereditems=0\relax
-          \addto@xml[2]\l_@@_answers_xml_tl{<graderinfo format="html"><text/></graderinfo>}%
-        \else
-          \addto@xml[2]\l_@@_answers_xml_tl{<graderinfo format="html"><text><![CDATA[}%
-          \ifnum\c@numgathereditems>1\relax
-            \addto@xml[4]\l_@@_answers_xml_tl{<ul>}%
-          \fi
-          \loopthroughitemswithcommand{\moodle@savegraderinfo}%
-          \ifnum\c@numgathereditems>1\relax
-            \addto@xml[4]\l_@@_answers_xml_tl{</ul>}%
-          \fi
-          \addto@xml[2]\l_@@_answers_xml_tl{]]></text></graderinfo>}%
-        \fi
+%         \ifnum\c@numgathereditems=0\relax
+%           \addto@xml[2]\l_@@_answers_xml_tl{<graderinfo format="html"><text/></graderinfo>}%
+%         \else
+%           \addto@xml[2]\l_@@_answers_xml_tl{<graderinfo format="html"><text><![CDATA[}%
+%           \ifnum\c@numgathereditems>1\relax
+%             \addto@xml[4]\l_@@_answers_xml_tl{<ul>}%
+%           \fi
+%           \loopthroughitemswithcommand{\moodle@savegraderinfo}%
+%           \ifnum\c@numgathereditems>1\relax
+%             \addto@xml[4]\l_@@_answers_xml_tl{</ul>}%
+%           \fi
+%           \addto@xml[2]\l_@@_answers_xml_tl{]]></text></graderinfo>}%
+%         \fi
         %
-        \passvalueaftergroup{\l_@@_answers_xml_tl}%
-      \egroup
-      \@@_write_essay_question:
-    }{}%
-  \egroup
-}%
+%         \passvalueaftergroup{\l_@@_answers_xml_tl}%
+%       \egroup
+%       \@@_write_essay_question:
+%     }{}%
+%   \egroup
+% }%
 
 %%%% TO DO
 %%%% To make essay work will be tough.
@@ -1609,8 +1610,16 @@
     \@@_write_response_format:
     \@@_write_response_field_lines:
     \@@_write_attachments_allowed:
-    \@@_write_attachements_required:
-    \@@_write_answers:x{essay} % The 'answers' XML really contains the grader info.
+    \@@_write_attachments_required:
+    \@@_write:xx{0}{<graderinfo~format="html">}
+      \@@_incr_indent:
+      \@@_write:xx{0}{<text><![CDATA[<ul>}
+        \@@_incr_indent:
+          \@@_map_answers:xx{write}{essay} % The 'answers' XML really contains the grader info.
+        \@@_decr_indent:
+      \@@_write:xx{0}{</ul>]]></text>}
+      \@@_decr_indent:
+    \@@_write:xx{0}{</graderinfo>}
     \@@_write_response_template:
     \@@_decr_indent:
   \@@_write:xx{0}{</question>}
@@ -1621,6 +1630,9 @@
     \item #1%
 }%
 
+\cs_new:Npn\@@_write_essay_answer:x#1{
+  \xa\converttohtmlmacro\xa\moodle@answertext@html\xa{#1}%
+  \@@_write:xx{0}{<li>\moodle@answertext@html</li>}}
 
 \def\moodle@savegraderinfo#1{%
   \bgroup
@@ -1677,7 +1689,7 @@
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
   \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
     \@@_incr_indent:
-    \@@_write:xx{0}{<text>#1</text>}
+    \@@_write:xx{0}{<text>\trim@spaces{#1}</text>}
     \ifx\l_@@_feedback_tl\@empty\relax\else
       \@@_write:xx{0}{<feedback~format="html">}
         \@@_incr_indent:
@@ -1694,11 +1706,10 @@
     \@@_incr_indent:
     \@@_write_common_data:
     \@@_write_use_case:
-    \@@_write_answers:x{shortanswer}
+    \@@_map_answers:xx{write}{shortanswer}
     \@@_decr_indent:
   \@@_write:xx{0}{</question>}
-  \@@_write:xx{0}{ }
-}
+  \@@_write:xx{0}{ }}
 %    \end{macrocode}
 %
 % \subsubsection{Numerical Question Front-End}
@@ -1758,7 +1769,7 @@
     \@@_write_unit_penalty:
     \@@_write_units_left:
     \@@_write_units:
-    \@@_write_answers:x{numerical}
+    \@@_map_answers:xx{write}{numerical}
     \@@_decr_indent:
   \@@_write:xx{0}{</question>}
   \@@_write:xx{0}{ }
@@ -1887,6 +1898,21 @@
     \addto@xml[2]{\l_@@_answers_xml_tl}{</answer>}%
   }%
 
+\cs_new:Npn\@@_write_multi_answer:x#1{
+  \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="html">}
+    \@@_incr_indent:
+    \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#1}
+    \@@_write:xx{0}{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+    \ifx\l_@@_feedback_tl\@empty\relax\else
+      \@@_write:xx{0}{<feedback~format="html">}
+        \@@_incr_indent:
+        \@@_write:xx{0}{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
+        \@@_decr_indent:
+      \@@_write:xx{0}{</feedback>}
+    \fi
+  \@@_decr_indent:
+  \@@_write:xx{0}{</answer>}}
+
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_multi_question:{
   \@@_write:xx{0}{<question~type="multichoice">}%
@@ -1895,7 +1921,7 @@
     \@@_write_single:%
     \@@_write_shuffle:%
     \@@_write_answer_numbering:%
-    \@@_write_answers:x{multi}
+    \@@_map_answers:xx{write}{multi}
     \@@_decr_indent:
   \@@_write:xx{0}{</question>}
   \@@_write:xx{0}{ }
@@ -1976,7 +2002,7 @@
     \@@_write_single:
     \@@_write_shuffle:
     \@@_write_answer_numbering:%
-    \@@_write_answers:x{matching}
+    \@@_map_answers:xx{write}{matching}
     \@@_decr_indent:
   \@@_write:xx{0}{</question>}
   \@@_write:xx{0}{ }

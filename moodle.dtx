@@ -1518,6 +1518,8 @@
 % This is because of what it must do with its |\item|'s.
 % 
 %    \begin{macrocode}
+\@@_make_frontend{essay}
+
 \cs_new:Npn\@@_print_essay_question:{
   % Moodle cannot automatically grade an essay, 
   % but if the user puts \item's in, we can list them in an itemize as notes.
@@ -1529,78 +1531,9 @@
   \fi
 }
 
-\@@_make_frontend{essay}
-
-% \NewEnviron{essay}[2][]{%
-%   \bgroup
-%     \moodleset{#1,questionname={#2}}%
-%     \expandafter\gatheritems\expandafter{\BODY}%
-%     \let\l_@@_question_header_tl=\gatheredheader
-    %First, the LaTeX processing.
-%       \item \textbf{\l_@@_question_name_tl}\par
-%       \noindent
-%       \l_@@_question_header_tl
-%       \@@_print_essay_question:
-    %Now, writing information to memory.
-%     \@@_if_generate_xml:TF{%
-%       \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
-%       \bgroup
-%         \gdef\l_@@_answers_xml_tl{}%
-        %
-%         \ifnum\c@numgathereditems=0\relax
-%           \addto@xml[2]\l_@@_answers_xml_tl{<graderinfo format="html"><text/></graderinfo>}%
-%         \else
-%           \addto@xml[2]\l_@@_answers_xml_tl{<graderinfo format="html"><text><![CDATA[}%
-%           \ifnum\c@numgathereditems>1\relax
-%             \addto@xml[4]\l_@@_answers_xml_tl{<ul>}%
-%           \fi
-%           \loopthroughitemswithcommand{\moodle@savegraderinfo}%
-%           \ifnum\c@numgathereditems>1\relax
-%             \addto@xml[4]\l_@@_answers_xml_tl{</ul>}%
-%           \fi
-%           \addto@xml[2]\l_@@_answers_xml_tl{]]></text></graderinfo>}%
-%         \fi
-        %
-%         \passvalueaftergroup{\l_@@_answers_xml_tl}%
-%       \egroup
-%       \@@_write_essay_question:
-%     }{}%
-%   \egroup
-% }%
-
-%%%% TO DO
-%%%% To make essay work will be tough.
-%%%% Every line from \ifnum\c@numgathereditems=0\relax through its \else and \fi,
-%%%% with the exception of
-%%%%          \xa\loopthroughitemswithcommand\xa{\csname save#1answer\endcsname}%
-%%%% , does not exist in our current \@@_make_frontend code.
-%%%% How can we cope?
-%%%%
-%%%% Idea: change \@@_make_frontend so that
-%%%%       1. if \c@numgathereditems=0, we don't do anything.
-%%%%       2. it calls a preamble and postamble around the \loopthroughitemswithcommand.
-%%%%          Like this:
-%%%%            
-%%%%      \@@_if_generate_xml:TF{%
-%%%%        \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
-%%%%        \bgroup
-%%%%          \gdef\l_@@_answers_xml_tl{}%
-%%%%          \moodleset{feedback={}}%
-%%%%          \@ifundefined{moodle@#1@answers@preamble}{}{}%
-%%%%          \csname moodle@#1@answers@preamble\endcsname
-%%%%          \ifnum\c@numgathereditems=0\relax
-%%%%            \relax
-%%%%          \else
-%%%%            \xa\loopthroughitemswithcommand\xa{\csname save#1answer\endcsname}%
-%%%%          \fi
-%%%%          \@ifundefined{moodle@#1@answers@postamble}{}{}%
-%%%%          \csname moodle@#1@answers@postamble\endcsname
-%%%%          \passvalueaftergroup{\l_@@_answers_xml_tl}%
-%%%%        \egroup
-%%%%        \csname write#1question\endcsname
-%%%%      }{}%
-%%%% The \@ifundefined lines should automatically define the 
-%%%% \...@preamble \...@postamble macros to be \relax if they don't exist already.
+\def\moodle@print@essay@answer#1{%
+    \item #1%
+}%
 
 \cs_new:Npn\@@_write_essay_question:{
   \@@_write:xx{0}{<question~type="essay">}
@@ -1626,33 +1559,10 @@
   \@@_write:xx{0}{ }
 }
 
-\def\moodle@print@essay@answer#1{%
-    \item #1%
-}%
-
 \cs_new:Npn\@@_write_essay_answer:x#1{
   \xa\converttohtmlmacro\xa\moodle@answertext@html\xa{#1}%
   \@@_write:xx{0}{<li>\moodle@answertext@html</li>}}
 
-\def\moodle@savegraderinfo#1{%
-  \bgroup
-    \moodle@savegraderinfo@int#1\moodle@answer@rdelim
-    \passvalueaftergroup{\l_@@_answers_xml_tl}%
-  \egroup
-}%
-\newcommand\moodle@savegraderinfo@int[1][]{%
-  \moodleset{fraction=0,#1}%
-  \moodle@savegraderinfo@int@int%
-}%
-\def\moodle@savegraderinfo@int@int#1\moodle@answer@rdelim{%
-  \xa\converttohtmlmacro\xa\moodle@answertext@html\xa{#1}%
-  %\trim@spaces@in\moodle@answertext
-  \ifnum\c@numgathereditems>1\relax
-    \addto@xml[6]{\l_@@_answers_xml_tl}{<li>\moodle@answertext@html</li>}%
-  \else
-    \addto@xml[4]{\l_@@_answers_xml_tl}{\moodle@answertext@html}%
-  \fi
-}%
 %    \end{macrocode}
 %
 % \subsubsection{Short Answer Question Front-End}
@@ -1867,36 +1777,6 @@
 % TODO: Verify that negative scores are handled correctly.
 % TODO: Put these macros in same order as other sections'.
 
-% SAVING ANSWERS TO MEMORY
-\def\savemultianswer#1{%
-  \bgroup
-    \savemultianswer@int#1\moodle@answer@rdelim
-    \passvalueaftergroup{\l_@@_answers_xml_tl}%
-  \egroup
-}%
-  \newcommand\savemultianswer@int[1][]{%
-    \moodleset{fraction=0,#1}%
-    \savemultianswer@int@int%
-  }%
-  \def\savemultianswer@int@int#1#2\moodle@answer@rdelim{%
-    \def\test@i{#1}%
-    \ifx\test@i\@star
-      \bool_if:NTF\l_@@_single_bool%
-        {\moodleset{fraction=100}}%
-        {\moodleset{fraction=\moodle@autopoints}}%
-      \def\moodle@answertext{#2}%
-    \else
-      \def\moodle@answertext{#1#2}%
-    \fi
-    \trim@spaces@in\moodle@answertext
-    \addto@xml[2]{\l_@@_answers_xml_tl}{<answer~fraction="\l_@@_fraction_tl"~format="html">}%
-    \xa\converttohtmlmacro\xa\moodle@answertext@html\xa{\moodle@answertext}%
-    \addto@xml[4]{\l_@@_answers_xml_tl}{  <text><![CDATA[<p>\moodle@answertext@html</p>]]></text>}%
-    \ifx\l_@@_feedback_tl\@empty\relax\else
-      \addto@xml[4]{\l_@@_answers_xml_tl}{  <feedback~format="html"><text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text></feedback>}%
-    \fi
-    \addto@xml[2]{\l_@@_answers_xml_tl}{</answer>}%
-  }%
 
 \cs_new:Npn\@@_write_multi_answer:x#1{
   \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="html">}
@@ -1954,44 +1834,38 @@
        \item #1\hfill #2%
    }%
 
+\cs_new:Npn\@@_write_matching_answer:x#1{
+  \@@_write_matching_answer_split#1\l_@@_answer_delim}
 
-% SAVING ANSWERS TO MEMORY
-\long\def\savematchinganswer#1{%
-  \bgroup
-    \savematchinganswer@int#1\moodle@answer@rdelim%
-    \passvalueaftergroup{\l_@@_answers_xml_tl}%
-  \egroup
-}%
-   \newcommand\savematchinganswer@int[1][]{%
-     \moodleset{#1}%
-     \xa\savematchinganswer@int@int\space%
-   }%
-   \long\def\savematchinganswer@int@int#1\answer#2\moodle@answer@rdelim{%
-     % Note that #1 may simply be \relax.
-     \def\moodle@subquestiontext{#1}%
-     \def\moodle@subanswertext{#2}%
-     \trim@spaces@in\moodle@subquestiontext
-     \xa\converttohtmlmacro\xa\moodle@subquestiontext@htmlized\xa{\moodle@subquestiontext}%
-     \trim@spaces@in\moodle@subanswertext
-     \bool_if:NTF\l_@@_drag_and_drop_bool%
-       {\xa\converttohtmlmacro\xa\moodle@subanswertext@htmlized\xa{\moodle@subanswertext}}%
-       {}%
-     \addto@xml[2]{\l_@@_answers_xml_tl}{<subquestion~format="html">}%
-     \ifx\moodle@subquestiontext\@empty
-       \addto@xml[4]{\l_@@_answers_xml_tl}{  <text></text>}%
-     \else
-       \addto@xml[4]{\l_@@_answers_xml_tl}{  <text><![CDATA[<p>\moodle@subquestiontext@htmlized</p>]]></text>}%
-     \fi
-     \bool_if:NTF\l_@@_drag_and_drop_bool%
-       {%\show\moodle@subanswertext@htmlized
-         \addto@xml[4]{\l_@@_answers_xml_tl}{  <answer~format="html"><text><![CDATA[<p>\moodle@subanswertext@htmlized</p>]]></text></answer>}}%
-        {%       \show\moodle@subanswertext
-          \addto@xml[4]{\l_@@_answers_xml_tl}{  <answer><text>\moodle@subanswertext</text></answer>}}%
-     \ifx\l_@@_feedback_tl\@empty\relax\else
-       \addto@xml[4]{\l_@@_answers_xml_tl}{  <feedback~format="html"><text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text></feedback>}%
-     \fi
-     \addto@xml[2]{\l_@@_answers_xml_tl}{</subquestion>}%
-   }%
+\def\@@_write_matching_answer_split#1\answer#2\l_@@_answer_delim{
+  \@@_write:xx{0}{<subquestion~format="html">}
+    \@@_incr_indent:
+    \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#1}
+    \@@_write:xx{0}{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+    \bool_if:NTF\l_@@_drag_and_drop_bool
+      {
+        \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#2}
+        \@@_write:xx{0}{<answer~format="html">}
+          \@@_incr_indent:
+          \@@_write:xx{0}{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+          \@@_decr_indent:
+        \@@_write:xx{0}{</answer>}
+      }{
+        \@@_write:xx{0}{<answer>}
+          \@@_incr_indent:
+          \@@_write:xx{0}{<text>#2</text>}
+          \@@_decr_indent:
+        \@@_write:xx{0}{</answer>}
+      }
+    \ifx\l_@@_feedback_tl\@empty\relax\else
+      \@@_write:xx{0}{<feedback~format="html">}
+        \@@_incr_indent:
+        \@@_write:xx{0}{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
+        \@@_decr_indent:
+      \@@_write:xx{0}{</feedback>}
+    \fi
+  \@@_decr_indent:
+  \@@_write:xx{0}{</subquestion>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_matching_question:{
@@ -2203,7 +2077,7 @@
   \bgroup
     \expandafter\gatheritems\expandafter{\BODY}%
     \let\l_@@_question_header_tl=\gatheredheader
-    \moodleset{default grade=1}%
+    \moodleset{default~grade=1}%
     \moodleset{#1}%
     \ifhtmlizer@active
       %HTML version
@@ -2297,7 +2171,7 @@
   \bgroup
     \expandafter\gatheritems\expandafter{\BODY}%
     \let\l_@@_question_header_tl=\gatheredheader
-    \moodleset{default grade=1}%
+    \moodleset{default~grade=1}%
     \moodleset{#1}%
     %Because nesting conditionals built by \csname doesn't work well,
     %we'll test '\ifmoodle@case sensitive' now and save the result in \count0.

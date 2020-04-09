@@ -752,6 +752,7 @@
 \let\xa=\expandafter
 \def\@star{*}%
 \def\@hundred{100}%
+\def\@zero{0}%
 \def\@moodle@empty{}%
 \def\@relax{\relax}%
 %    \end{macrocode}
@@ -1395,21 +1396,30 @@
 %which them gets written to the file when \@@_write_answers:x
 %is invoked.
 
-\def\l_@@_answers_xml_tl{}%
-
-\newcommand\addto@xml[3][0]{%
-  % #1 = spaces to indent (default=0)
-  % #2 = macro containing XML code (possibly empty)
-  % #3 = XML text to be appended to that macro (will be \edef'd)
-  \calculateindent{#1}%
-  \edef\xml@to@add{\moodle@indent\trim@pre@space{#3}}%
-  \ifx#2\@moodle@empty
-    \edef\newxml{\noexpand#2\xml@to@add}%
-  \else
-    \edef\newxml{\noexpand#2^^J\xml@to@add}%
-  \fi
-  \xa\xa\xa\def\xa\xa\xa#2\xa\xa\xa{\newxml}%
+% WRITING/PRINTING ANSWERS
+\cs_new:Npn\@@_apply_answer:xxx#1#2#3{%
+  \bgroup
+    \@@_apply_answer_opt{#1}{#2}#3\l_@@_answer_delim
+  \egroup
 }%
+
+\NewDocumentCommand \@@_apply_answer_opt { m m s O{} } {
+  \IfBooleanTF{#3}
+    {\moodleset{fraction=100}}
+    {\moodleset{fraction=0}}
+  \moodleset{feedback=,#4}
+  \@@_apply_answer_text{#1}{#2}
+}
+
+\def\@@_apply_answer_text#1#2#3\l_@@_answer_delim{
+  \csname @@_#1_#2_answer:x\endcsname{#3}}
+
+\cs_new:Npn\@@_map_answers:xx#1#2{
+  \bgroup
+    \def\doitem##1{\@@_apply_answer:xxx{#1}{#2}{##1}}
+    \loopthroughitemswithcommand{\doitem}
+  \egroup}
+
 %    \end{macrocode}
 %
 % \subsubsection{Not yet implemented}
@@ -1485,31 +1495,6 @@
   }%
 }
 
-
-% WRITING/PRINTING ANSWERS
-\cs_new:Npn\@@_apply_answer:xxx#1#2#3{%
-  \bgroup
-    \@@_apply_answer_opt{#1}{#2}#3\l_@@_answer_delim
-  \egroup
-}%
-
-\NewDocumentCommand \@@_apply_answer_opt { m m s O{} } {
-  \IfBooleanTF{#3}
-    {\moodleset{fraction=100}}
-    {\moodleset{fraction=0}}
-  \moodleset{feedback=,#4}
-  \@@_apply_answer_text{#1}{#2}
-}
-
-\def\@@_apply_answer_text#1#2#3\l_@@_answer_delim{
-  \csname @@_#1_#2_answer:x\endcsname{#3}}
-
-\cs_new:Npn\@@_map_answers:xx#1#2{
-  \bgroup
-    \def\doitem##1{\@@_apply_answer:xxx{#1}{#2}{##1}}
-    \loopthroughitemswithcommand{\doitem}
-  \egroup}
-
 %    \end{macrocode}
 %
 % \subsubsection{Essay Question Front-End}
@@ -1521,19 +1506,18 @@
 \@@_make_frontend{essay}
 
 \cs_new:Npn\@@_print_essay_question:{
-  % Moodle cannot automatically grade an essay, 
-  % but if the user puts \item's in, we can list them in an itemize as notes.
   \ifnum\c@numgathereditems>0\relax
-    \par\noindent Notes: (not included in XML)
-    \begin{itemize} \setlength\itemsep{0pt}\setlength\parskip{0pt}%
-      \loopthroughitemswithcommand{\moodle@print@essay@answer}%
-    \end{itemize}%
+    \par\noindent Grader~Notes:
+    \begin{itemize}
+      \setlength\itemsep{0pt}
+      \setlength\parskip{0pt}
+      \@@_map_answers:xx{print}{essay}
+    \end{itemize}
   \fi
 }
 
-\def\moodle@print@essay@answer#1{%
-    \item #1%
-}%
+\cs_new:Npn\@@_print_essay_answer:x#1{
+  \item #1}
 
 \cs_new:Npn\@@_write_essay_question:{
   \@@_write:xx{0}{<question~type="essay">}
@@ -1576,25 +1560,23 @@
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_shortanswer_question:{
-  \begin{itemize} \setlength\itemsep{0pt}\setlength\parskip{0pt}%
-    \loopthroughitemswithcommand{\moodle@print@shortanswer@answer}%
-  \end{itemize}%
+  \begin{itemize}
+    \setlength\itemsep{0pt}
+    \setlength\parskip{0pt}
+    \@@_map_answers:xx{print}{shortanswer}
+  \end{itemize}
 }
 
-   \def\moodle@print@shortanswer@answer#1{%
-       \moodle@print@shortanswer@answer@int#1\@rdelim
-   }%
-   \newcommand\moodle@print@shortanswer@answer@int[1][]{%
-     \moodleset{#1}%
-     \moodle@print@shortanswer@answer@int@int%
-   }%
-   \def\moodle@print@shortanswer@answer@int@int#1\@rdelim{%
-     \ifx\l_@@_fraction_tl\@hundred
-       \item #1\quad$\checkmark$%
-     \else
-       \item #1\quad (\l_@@_fraction_tl\%)%
-     \fi
-   }%
+\cs_new:Npn\@@_print_shortanswer_answer:x#1{
+  \ifx\l_@@_fraction_tl\@hundred
+    \item #1\quad\(\checkmark\)
+  \else
+    \ifx\l_@@_fraction_tl\@zero
+      \item #1
+    \else
+      \item #1\quad\((\l_@@_fraction_tl\%)\)
+    \fi
+  \fi}
 
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
   \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
@@ -1629,30 +1611,28 @@
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_numerical_question:{
-      \begin{itemize} \setlength\itemsep{0pt}\setlength\parskip{0pt}%
-        \loopthroughitemswithcommand{\moodle@print@numerical@answer}%
-      \end{itemize}%
+  \begin{itemize}
+    \setlength\itemsep{0pt}
+    \setlength\parskip{0pt}
+    \@@_map_answers:xx{print}{numerical}
+  \end{itemize}
 }
 
-   \def\moodle@print@numerical@answer#1{%
-       \moodle@print@numerical@answer@int#1\@rdelim
-   }%
-   \newcommand\moodle@print@numerical@answer@int[1][]{%
-     \moodleset{#1}%
-     \moodle@print@numerical@answer@int@int%
-   }%
-   \def\moodle@print@numerical@answer@int@int#1\@rdelim{%
-     \ifdim0pt=\l_@@_tolerance_tl pt\relax
-       \def\moodle@numericalprint@tolerance{}%
-     \else
-       \edef\moodle@numericalprint@tolerance{\noexpand\pm\l_@@_tolerance_tl}%
-     \fi
-     \ifx\l_@@_fraction_tl\@hundred
-       \item $#1\moodle@numericalprint@tolerance\quad\checkmark$%
-     \else
-       \item $#1\moodle@numericalprint@tolerance$\quad (\l_@@_fraction_tl\%)%
-     \fi
-   }%
+\cs_new:Npn\@@_print_numerical_answer:x#1{
+  \ifdim0pt=\l_@@_tolerance_tl pt\relax
+    \def\moodle@numericalprint@tolerance{}%
+  \else
+    \edef\moodle@numericalprint@tolerance{\noexpand\pm\l_@@_tolerance_tl}%
+  \fi
+  \ifx\l_@@_fraction_tl\@hundred
+    \item \(#1\moodle@numericalprint@tolerance\quad\checkmark\)
+  \else
+    \ifx\l_@@_fraction_tl\@zero
+      \item \(#1\moodle@numericalprint@tolerance\)
+    \else
+      \item \(#1\moodle@numericalprint@tolerance\quad (\l_@@_fraction_tl\%)\)
+    \fi
+  \fi}
 
 \cs_new:Npn\@@_write_numerical_answer:x#1{
   \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
@@ -1700,41 +1680,17 @@
 \@@_make_frontend{multi}
 
 % LATEX PROCESSING
-
 \cs_new:Npn\@@_print_multi_question:{
-      \moodle@countcorrectanswers
-      \begin{enumerate}\moodle@obeynumberingstyle
-                       %\renewcommand{\theenumi}{\alph{enumi}}%
-                       \setlength\itemsep{0pt}\setlength\parskip{0pt}%
-        \loopthroughitemswithcommand{\moodle@print@multichoice@answer}%
-      \end{enumerate}%
+  \begin{enumerate}
+    \setlength\itemsep{0pt}
+    \setlength\parskip{0pt}
+    \moodle@obeynumberingstyle
+    \@@_map_answers:xx{print}{multi}
+  \end{enumerate}
 }
-  \def\moodle@print@multichoice@answer#1{%
-    \moodle@print@multichoice@answer@int#1\@rdelim
-  }%
-  \newcommand\moodle@print@multichoice@answer@int[1][]{%
-    \moodleset{fraction=0,#1}%
-    \moodle@print@multichoice@answer@int@int
-  }%
-  \def\moodle@print@multichoice@answer@int@int#1#2\@rdelim{%
-    \def\test@i{#1}%
-    \bool_if:NTF\l_@@_single_bool%
-      {
-      \ifx\test@i\@star
-        \item #2$~\checkmark$%
-      \else
-        \item #1#2%
-      \fi
-      }{
-      \ifx\test@i\@star
-        \item #2%
-        \moodleset{fraction=\moodle@autopoints}%
-      \else
-        \item #1#2%
-      \fi
-      $~(\l_@@_fraction_tl\%)$
-      }
-  }%
+
+\cs_new:Npn\@@_print_multi_answer:x#1
+  {\item #1 \((\l_@@_fraction_tl\%)\)}
 
 % COMMON UTILITY: COUNTING CORRECT ANSWERS
    \newcounter{moodle@numcorrectanswers}%
@@ -1817,22 +1773,20 @@
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_matching_question:{
-  \bgroup
-    \let\answer=\hfill
-    \begin{enumerate}\renewcommand{\theenumi}{\alph{enumi}}\setlength\itemsep{0pt}\setlength\parskip{0pt}%
-      \loopthroughitemswithcommand{\moodle@print@matching@answer}%
-    \end{enumerate}%
-  \egroup
+  \begin{enumerate}
+    \renewcommand{\theenumi}{\alph{enumi}}
+    \setlength\itemsep{0pt}
+    \setlength\parskip{0pt}
+    \moodle@obeynumberingstyle
+    \@@_map_answers:xx{print}{matching}
+  \end{enumerate}
 }
-   \long\def\moodle@print@matching@answer#1{%
-     \moodle@print@matching@answer@int#1\@rdelim
-   }%
-   \newcommand\moodle@print@matching@answer@int[1][]{%
-     \moodle@print@matching@answer@int@int\relax
-   }%
-   \long\def\moodle@print@matching@answer@int@int#1\answer#2\@rdelim{%
-       \item #1\hfill #2%
-   }%
+
+\cs_new:Npn\@@_print_matching_answer:x#1{
+  \@@_print_matching_answer_split#1\l_@@_answer_delim}
+
+\def\@@_print_matching_answer_split#1\answer#2\l_@@_answer_delim{
+  \item #1\hfill #2}
 
 \cs_new:Npn\@@_write_matching_answer:x#1{
   \@@_write_matching_answer_split#1\l_@@_answer_delim}

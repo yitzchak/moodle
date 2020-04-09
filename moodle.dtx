@@ -800,38 +800,14 @@
   \int_gzero_new:N\g_@@_xml_indent_int{0}
   \iow_new:N\g_@@_xml_iow
   \iow_open:Nn\g_@@_xml_iow\outputfilename
-  \@@_write:xx{0}{<?xml~version="1.0"~encoding="UTF-8"?>}%
-  \@@_write:xx{0}{<quiz>}%
-  \@@_incr_indent:
-  \@@_write:xx{0}{ }%
+  \@@_write:x{<?xml~version="1.0"~encoding="UTF-8"?>}%
+  \@@_write_begin:x{<quiz>}%
+  \@@_write:x{ }%
 }%
 \cs_new:Npn\@@_write_footer:{%
   \@@_decr_indent:
-  \@@_write:xx{0}{</quiz>}%
+  \@@_write_end:x{</quiz>}%
   \iow_close:N\g_@@_xml_iow
-}%
-%    \end{macrocode}
-% To both make this |.sty| file and the XML output more readable,
-% we create a mechanism for writing to the output file with indents.
-% The macro |\calculateindent|\marg{$n$} globally defines 
-% |\moodle@indent| to be a string of \meta{$n$} |\otherspace|'s.
-%    \begin{macrocode}
-
-
-\def\calculateindent#1{%
-  \bgroup
-    \count0=\number#1\relax
-    \gdef\moodle@indent{}%
-    \calculateindent@int
-  \egroup
-}%
-\def\calculateindent@int{%
-  \ifnum\count0>0\relax
-    \g@addto@macro{\moodle@indent}{\otherspace}%
-    \advance\count0 by -1\relax
-    \expandafter
-    \calculateindent@int
-  \fi
 }%
 %    \end{macrocode}
 % Now the command |\writetomoodle|\oarg{n}\marg{stuff} adds the line 
@@ -841,11 +817,19 @@
 %    \begin{macrocode}
 \cs_new:Npn\g_@@_indent_str#1{\otherspace\otherspace}
 
-\cs_new:Npn\@@_write:xx#1#2{
+\cs_new:Npn\@@_write:x#1{
   \iow_now:Nx\g_@@_xml_iow{
     \int_step_function:nN\g_@@_xml_indent_int\g_@@_indent_str
-    #2}
-}%
+    #1}}
+
+\cs_new:Npn\@@_write_begin:x#1{
+  \@@_write:x{#1}
+  \@@_incr_indent:}
+
+\cs_new:Npn\@@_write_end:x#1{
+  \@@_decr_indent:
+  \@@_write:x{#1}}
+
 %    \end{macrocode}
 % We now create the main |quiz| environment that will contain
 % the questions we write.  It outputs to XML as a |<question~type="category">| tag.
@@ -864,16 +848,12 @@
 
 {\catcode`\$=12\catcode`\ =12%
 \cs_new:Npn\@@_write_category:x#1{%
-\@@_write:xx{0}{<question~type="category">}%
-\@@_incr_indent:
-  \@@_write:xx{0}{<category>}%
-    \@@_incr_indent:
-    \@@_write:xx{0}{<text>$module$/#1</text>}%
-    \@@_decr_indent:
-  \@@_write:xx{0}{</category>}%
-\@@_decr_indent:
-\@@_write:xx{0}{</question>}%
-\@@_write:xx{0}{ }%
+\@@_write_begin:x{<question~type="category">}%
+  \@@_write_begin:x{<category>}%
+    \@@_write:x{<text>$module$/#1</text>}%
+  \@@_write_end:x{</category>}%
+\@@_write_end:x{</question>}%
+\@@_write:x{ }%
 }}%
 %    \end{macrocode}                       
 % The next utility takes a single macro control sequence |#1|,
@@ -930,12 +910,12 @@
 %   \gdef\moodle@writeexcuse{%
 %     \xa\def\xa\test@iii\xa{\theexcuse}%
 %     \ifx\test@iii\@moodle@empty
-%       \@@_write:xx{2}{  <EXC format="html"><text/></EXC>}%
+%       \@@_write:x{  <EXC format="html"><text/></EXC>}%
 %     \else
 %       \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{\theexcuse}%
-%       \@@_write:xx{2}{  <EXC format="html">}%
-%       \@@_write:xx{4}{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}%
-%       \@@_write:xx{2}{  </EXC>}%
+%       \@@_write:x{  <EXC format="html">}%
+%       \@@_write:x{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}%
+%       \@@_write:x{  </EXC>}%
 %     \fi
 %   }%
 % \end{Verbatim}
@@ -944,7 +924,7 @@
 % would expand only to
 % \begin{Verbatim}[gobble=4,frame=single]
 %   \gdef\moodle@writeexcuse{%
-%      \@@_write:xx{2}{  <EXC>\theexcuse</EXC>}%
+%      \@@_write:x{  <EXC>\theexcuse</EXC>}%
 %   }
 % \end{Verbatim}
 %    \begin{macrocode}
@@ -957,17 +937,15 @@
   % #2 = HTML tag
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
-    \@@_write:xx{2}{<#2~format="html">}
-    \@@_incr_indent:
+    \@@_write_begin:x{<#2~format="html">}
     \xa\def\xa\test@iii\xa{#3}
     \ifx\test@iii\@moodle@empty
-      \@@_write:xx{2}{<text/>}
+      \@@_write:x{<text/>}
     \else
       \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#3}
-      \@@_write:xx{4}{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+      \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
     \fi
-    \@@_decr_indent:
-    \@@_write:xx{2}{</#2>}
+    \@@_write_end:x{</#2>}
   }
 }
 
@@ -977,7 +955,7 @@
   % #2 = HTML tag
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
-    \@@_write:xx{2}{<#2>#3</#2>}
+    \@@_write:x{<#2>#3</#2>}
   }
 }
 
@@ -1025,11 +1003,9 @@
 
 %% QUESTION NAME
 \cs_new:Npn\@@_write_question_name:{
-  \@@_write:xx{2}{<name>}
-  \@@_incr_indent:
-  \@@_write:xx{4}{<text>\l_@@_question_name_tl</text>}
-  \@@_decr_indent:
-  \@@_write:xx{2}{</name>}
+  \@@_write_begin:x{<name>}
+    \@@_write:x{<text>\l_@@_question_name_tl</text>}
+  \@@_write_end:x{</name>}
 }
 
 %% PENALTY FOR WRONG ATTEMPT
@@ -1236,20 +1212,16 @@
 \def\def_unit:n#1{\prop_put:Nnn\l_@@_units_prop{#1}{1}}%
 
 \cs_new:Npn\@@_write_unit:xx#1#2{%
-  \@@_write:xx{4}{<unit>}
-  \@@_incr_indent:
-  \@@_write:xx{6}{<unit_name>#1</unit_name>}
-  \@@_write:xx{6}{<multiplier>\ifblank{#2}{1}{#2}</multiplier>}
-  \@@_decr_indent:
-  \@@_write:xx{4}{</unit>}}%
+  \@@_write_begin:x{<unit>}
+    \@@_write:x{<unit_name>#1</unit_name>}
+    \@@_write:x{<multiplier>\ifblank{#2}{1}{#2}</multiplier>}
+  \@@_write_end:x{</unit>}}%
 
 \cs_new:Npn\@@_write_units:{
   \prop_if_empty:NTF\l_@@_units_prop{}{
-    \@@_write:xx{2}{<units>}
-    \@@_incr_indent:
-    \prop_map_function:NN\l_@@_units_prop\@@_write_unit:xx
-    \@@_decr_indent:
-    \@@_write:xx{2}{</units>}
+    \@@_write_begin:x{<units>}
+      \prop_map_function:NN\l_@@_units_prop\@@_write_unit:xx
+    \@@_write_end:x{</units>}
   }
 }
 
@@ -1372,14 +1344,14 @@
 %% SHOW NUM CORRECT
 \cs_new:Npn\@@_write_show_num_correct:{
   \bool_if:NTF\l_@@_show_num_correct_bool
-    {\@@_write:xx{4}{<shownumcorrect/>}}
+    {\@@_write:x{<shownumcorrect/>}}
     {}
 }
 
 %% CLEAR WRONG
 \cs_new:Npn\@@_write_clear_wrong:{
   \bool_if:NTF\l_@@_clear_wrong_bool
-    {\@@_write:xx{4}{<clearwrong/>}}
+    {\@@_write:x{<clearwrong/>}}
     {}
 }
 
@@ -1520,32 +1492,26 @@
   \item #1}
 
 \cs_new:Npn\@@_write_essay_question:{
-  \@@_write:xx{0}{<question~type="essay">}
-    \@@_incr_indent:
+  \@@_write_begin:x{<question~type="essay">}
     \@@_write_common_data:
     \@@_write_response_required:
     \@@_write_response_format:
     \@@_write_response_field_lines:
     \@@_write_attachments_allowed:
     \@@_write_attachments_required:
-    \@@_write:xx{0}{<graderinfo~format="html">}
-      \@@_incr_indent:
-      \@@_write:xx{0}{<text><![CDATA[<ul>}
-        \@@_incr_indent:
-          \@@_map_answers:xx{write}{essay} % The 'answers' XML really contains the grader info.
-        \@@_decr_indent:
-      \@@_write:xx{0}{</ul>]]></text>}
-      \@@_decr_indent:
-    \@@_write:xx{0}{</graderinfo>}
+    \@@_write_begin:x{<graderinfo~format="html">}
+      \@@_write_begin:x{<text><![CDATA[<ul>}
+        \@@_map_answers:xx{write}{essay} % The 'answers' XML really contains the grader info.
+      \@@_write_end:x{</ul>]]></text>}
+    \@@_write_end:x{</graderinfo>}
     \@@_write_response_template:
-    \@@_decr_indent:
-  \@@_write:xx{0}{</question>}
-  \@@_write:xx{0}{ }
+  \@@_write_end:x{</question>}
+  \@@_write:x{ }
 }
 
 \cs_new:Npn\@@_write_essay_answer:x#1{
   \xa\converttohtmlmacro\xa\moodle@answertext@html\xa{#1}%
-  \@@_write:xx{0}{<li>\moodle@answertext@html</li>}}
+  \@@_write:x{<li>\moodle@answertext@html</li>}}
 
 %    \end{macrocode}
 %
@@ -1579,29 +1545,23 @@
   \fi}
 
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
-  \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
-    \@@_incr_indent:
-    \@@_write:xx{0}{<text>\trim@spaces{#1}</text>}
+  \@@_write_begin:x{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
+    \@@_write:x{<text>\trim@spaces{#1}</text>}
     \ifx\l_@@_feedback_tl\@empty\relax\else
-      \@@_write:xx{0}{<feedback~format="html">}
-        \@@_incr_indent:
-        \@@_write:xx{0}{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
-        \@@_decr_indent:
-      \@@_write:xx{0}{</feedback>}
+      \@@_write_begin:x{<feedback~format="html">}
+        \@@_write:x{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
+      \@@_write_end:x{</feedback>}
     \fi
-  \@@_decr_indent:
-  \@@_write:xx{0}{</answer>}}
+  \@@_write_end:x{</answer>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_shortanswer_question:{
-  \@@_write:xx{0}{<question~type="shortanswer">}
-    \@@_incr_indent:
+  \@@_write_begin:x{<question~type="shortanswer">}
     \@@_write_common_data:
     \@@_write_use_case:
     \@@_map_answers:xx{write}{shortanswer}
-    \@@_decr_indent:
-  \@@_write:xx{0}{</question>}
-  \@@_write:xx{0}{ }}
+  \@@_write_end:x{</question>}
+  \@@_write:x{ }}
 %    \end{macrocode}
 %
 % \subsubsection{Numerical Question Front-End}
@@ -1635,24 +1595,19 @@
   \fi}
 
 \cs_new:Npn\@@_write_numerical_answer:x#1{
-  \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
-    \@@_incr_indent:
-    \@@_write:xx{0}{<text>#1</text>}
-    \@@_write:xx{0}{<tolerance>\l_@@_tolerance_tl</tolerance>}
+  \@@_write_begin:x{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
+    \@@_write:x{<text>#1</text>}
+    \@@_write:x{<tolerance>\l_@@_tolerance_tl</tolerance>}
     \ifx\l_@@_feedback_tl\@empty\relax\else
-      \@@_write:xx{0}{<feedback~format="html">}
-        \@@_incr_indent:
-        \@@_write:xx{0}{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
-        \@@_decr_indent:
-      \@@_write:xx{0}{</feedback>}
+      \@@_write_begin:x{<feedback~format="html">}
+        \@@_write:x{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
+      \@@_write_end:x{</feedback>}
     \fi
-  \@@_decr_indent:
-  \@@_write:xx{0}{</answer>}}
+  \@@_write_end:x{</answer>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_numerical_question:{
-  \@@_write:xx{0}{<question~type="numerical">}
-    \@@_incr_indent:
+  \@@_write_begin:x{<question~type="numerical">}
     \@@_write_common_data:
     \@@_write_show_units:
     \@@_write_unit_grading_type:
@@ -1660,9 +1615,8 @@
     \@@_write_units_left:
     \@@_write_units:
     \@@_map_answers:xx{write}{numerical}
-    \@@_decr_indent:
-  \@@_write:xx{0}{</question>}
-  \@@_write:xx{0}{ }
+  \@@_write_end:x{</question>}
+  \@@_write:x{ }
 }%
 %    \end{macrocode}
 %
@@ -1735,32 +1689,26 @@
 
 
 \cs_new:Npn\@@_write_multi_answer:x#1{
-  \@@_write:xx{0}{<answer~fraction="\l_@@_fraction_tl"~format="html">}
-    \@@_incr_indent:
+  \@@_write_begin:x{<answer~fraction="\l_@@_fraction_tl"~format="html">}
     \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#1}
-    \@@_write:xx{0}{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+    \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
     \ifx\l_@@_feedback_tl\@empty\relax\else
-      \@@_write:xx{0}{<feedback~format="html">}
-        \@@_incr_indent:
-        \@@_write:xx{0}{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
-        \@@_decr_indent:
-      \@@_write:xx{0}{</feedback>}
+      \@@_write_begin:x{<feedback~format="html">}
+        \@@_write:x{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
+      \@@_write_end:x{</feedback>}
     \fi
-  \@@_decr_indent:
-  \@@_write:xx{0}{</answer>}}
+  \@@_write_end:x{</answer>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_multi_question:{
-  \@@_write:xx{0}{<question~type="multichoice">}%
-    \@@_incr_indent:
+  \@@_write_begin:x{<question~type="multichoice">}%
     \@@_write_common_data:%
     \@@_write_single:%
     \@@_write_shuffle:%
     \@@_write_answer_numbering:%
     \@@_map_answers:xx{write}{multi}
-    \@@_decr_indent:
-  \@@_write:xx{0}{</question>}
-  \@@_write:xx{0}{ }
+  \@@_write_end:x{</question>}
+  \@@_write:x{ }
 }%
 %    \end{macrocode}
 %
@@ -1783,57 +1731,44 @@
 }
 
 \cs_new:Npn\@@_print_matching_answer:x#1{
-  \@@_print_matching_answer_split#1\l_@@_answer_delim}
-
-\def\@@_print_matching_answer_split#1\answer#2\l_@@_answer_delim{
-  \item #1\hfill #2}
+  \item #1}
 
 \cs_new:Npn\@@_write_matching_answer:x#1{
   \@@_write_matching_answer_split#1\l_@@_answer_delim}
 
 \def\@@_write_matching_answer_split#1\answer#2\l_@@_answer_delim{
-  \@@_write:xx{0}{<subquestion~format="html">}
-    \@@_incr_indent:
+  \@@_write_begin:x{<subquestion~format="html">}
     \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#1}
-    \@@_write:xx{0}{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+    \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
     \bool_if:NTF\l_@@_drag_and_drop_bool
       {
         \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#2}
-        \@@_write:xx{0}{<answer~format="html">}
-          \@@_incr_indent:
-          \@@_write:xx{0}{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
-          \@@_decr_indent:
-        \@@_write:xx{0}{</answer>}
+        \@@_write_begin:x{<answer~format="html">}
+          \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+        \@@_write_end:x{</answer>}
       }{
-        \@@_write:xx{0}{<answer>}
-          \@@_incr_indent:
-          \@@_write:xx{0}{<text>#2</text>}
-          \@@_decr_indent:
-        \@@_write:xx{0}{</answer>}
+        \@@_write_begin:x{<answer>}
+          \@@_write:x{<text>#2</text>}
+        \@@_write_end:x{</answer>}
       }
     \ifx\l_@@_feedback_tl\@empty\relax\else
-      \@@_write:xx{0}{<feedback~format="html">}
-        \@@_incr_indent:
-        \@@_write:xx{0}{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
-        \@@_decr_indent:
-      \@@_write:xx{0}{</feedback>}
+      \@@_write_begin:x{<feedback~format="html">}
+        \@@_write:x{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
+      \@@_write_end:x{</feedback>}
     \fi
-  \@@_decr_indent:
-  \@@_write:xx{0}{</subquestion>}}
+  \@@_write_end:x{</subquestion>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_matching_question:{
   %
-  \@@_write:xx{0}{<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}
-    \@@_incr_indent:
+  \@@_write_begin:x{<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}
     \@@_write_common_data:%
     \@@_write_single:
     \@@_write_shuffle:
     \@@_write_answer_numbering:%
     \@@_map_answers:xx{write}{matching}
-    \@@_decr_indent:
-  \@@_write:xx{0}{</question>}
-  \@@_write:xx{0}{ }
+  \@@_write_end:x{</question>}
+  \@@_write:x{ }
 %  \gdef\moodle@answ
 }%
 %    \end{macrocode}
@@ -1886,12 +1821,10 @@
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_cloze_question:{
-  \@@_write:xx{0}{<question~type="cloze">}%
-    \@@_incr_indent:
-    \@@_write_common_data:%
-    \@@_decr_indent:
-  \@@_write:xx{0}{</question>}
-  \@@_write:xx{0}{ }
+  \@@_write_begin:x{<question~type="cloze">}%
+    \@@_write_common_data:
+  \@@_write_end:x{</question>}
+  \@@_write:x{ }
 }%
 %    \end{macrocode}
 %
@@ -1910,7 +1843,7 @@
       \def\moodle@clozemulti@output{}%
       \xa\g@addto@macro\xa\moodle@clozemulti@output\xa{\l_@@_question_header_tl}%
       \def\clozemulti@coding{}%
-      \edef\clozemulti@coding{\otherlbrace\csname moodle@default grade\endcsname:}%
+      \edef\clozemulti@coding{\otherlbrace\l_@@_default_grade_tl :}%
       \ifcase\l_@@_display_mode_tl\relax
         % Case 0: dropdown box style
         \g@addto@macro{\clozemulti@coding}{MULTICHOICE:}%
@@ -2038,7 +1971,7 @@
       \def\moodle@clozenumerical@output{}%
       \xa\g@addto@macro\xa\moodle@clozenumerical@output\xa{\l_@@_question_header_tl}%
       \def\clozenumerical@coding{}%
-      \edef\clozenumerical@coding{\otherlbrace\csname moodle@default grade\endcsname:NUMERICAL:}%
+      \edef\clozenumerical@coding{\otherlbrace\l_@@_default_grade_tl :NUMERICAL:}%
       \bgroup
         \moodleset{feedback={}}%
         \loopthroughitemswithcommand{\saveclozenumericalanswer}%
@@ -2111,7 +2044,7 @@
       \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherpercent\l_@@_fraction_tl\otherpercent}%
     \fi
   \fi
-  \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\moodle@answertext:\l_@@_tolerance_tl}%
+  \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\moodle@answertext :\l_@@_tolerance_tl}%
   \ifx\l_@@_feedback_tl\@empty\else
     \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherbackslash\otherhash\l_@@_feedback_tl}%
   \fi
@@ -2129,20 +2062,18 @@
     \moodleset{#1}%
     %Because nesting conditionals built by \csname doesn't work well,
     %we'll test '\ifmoodle@case sensitive' now and save the result in \count0.
-    \csname ifmoodle@case sensitive\endcsname
-      \count0=1\relax
-    \else
-      \count0=0\relax
-    \fi
+    \bool_if:NTF\l_@@_case_sensitive_bool
+      {\count0=1\relax}
+      {\count0=0\relax}
     \ifhtmlizer@active
       %HTML version
       \def\moodle@clozeshortanswer@output{}%
       \xa\g@addto@macro\xa\moodle@clozeshortanswer@output\xa{\l_@@_question_header_tl}%
       \def\clozeshortanswer@coding{}%
       \ifnum\count0=1\relax
-        \edef\clozeshortanswer@coding{\otherlbrace\csname moodle@default grade\endcsname:SHORTANSWER_C:}%
+        \edef\clozeshortanswer@coding{\otherlbrace\l_@@_default_grade_tl :SHORTANSWER_C:}%
       \else
-        \edef\clozeshortanswer@coding{\otherlbrace\csname moodle@default grade\endcsname:SHORTANSWER:}%
+        \edef\clozeshortanswer@coding{\otherlbrace\l_@@_default_grade_tl :SHORTANSWER:}%
       \fi
       \bgroup
         \moodleset{feedback={}}%

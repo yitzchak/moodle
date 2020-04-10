@@ -1831,7 +1831,6 @@
 % \subsubsection{Cloze Multiple Choice Questions}
 % 
 %    \begin{macrocode}
-% TODO: Guard against [single=false] option
 
 \NewEnviron{clozemulti}[1][]{%
   \bgroup
@@ -1846,13 +1845,31 @@
       \edef\clozemulti@coding{\otherlbrace\l_@@_default_grade_tl :}%
       \ifcase\l_@@_display_mode_tl\relax
         % Case 0: dropdown box style
-        \g@addto@macro{\clozemulti@coding}{MULTICHOICE:}%
+        \bool_if:NTF\l_@@_single_bool
+          {\bool_if:NTF{\l_@@_shuffle_bool}
+            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_S:}}
+            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE:}}}
+          {\bool_if:NTF{\l_@@_shuffle_bool}
+            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE_S:}}
+            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE:}}}
       \or
         % Case 1: vertical style
-        \g@addto@macro{\clozemulti@coding}{MULTICHOICE_V:}%
+        \bool_if:NTF\l_@@_single_bool
+          {\bool_if:NTF{\l_@@_shuffle_bool}
+            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_VS:}}
+            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_V:}}}
+          {\bool_if:NTF{\l_@@_shuffle_bool}
+            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE_S:}}
+            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE:}}}
       \else
         % Case 2: horizontal radio buttons
-        \g@addto@macro{\clozemulti@coding}{MULTICHOICE_H:}%
+        \bool_if:NTF\l_@@_single_bool
+          {\bool_if:NTF{\l_@@_shuffle_bool}
+            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_HS:}}
+            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_H:}}}
+          {\bool_if:NTF{\l_@@_shuffle_bool}
+            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE_HS:}}
+            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE_H:}}}
       \fi
       \bgroup
         \moodleset{feedback={}}%

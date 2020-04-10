@@ -1047,9 +1047,9 @@
 %% FRACTION -- how much this answer is worth out of 100 percent
 \keys_define:nn{moodle}{
   %% FRACTION
-  fraction .tl_set:N = \l_@@_fraction_tl,
+  fraction .fp_set:N = \l_@@_fraction_fp,
   fraction .default:n = 100,
-  fraction .initial:n = 100
+  fraction .initial:n = 0
 }
 %We do not create \moodle@writefraction, because the fraction occurs in
 %the XML within the answer tag, like <answer fraction="75">.
@@ -1154,7 +1154,7 @@
 %    \begin{macrocode}
 \keys_define:nn{moodle}{
   %% TOLERANCE
-  tolerance .tl_set:N = \l_@@_tolerance_tl,
+  tolerance .fp_set:N = \l_@@_tolerance_fp,
   tolerance .default:n = 0,
   tolerance .initial:n = 0,
 
@@ -1534,18 +1534,15 @@
 }
 
 \cs_new:Npn\@@_print_shortanswer_answer:x#1{
-  \ifx\l_@@_fraction_tl\@hundred
-    \item #1\quad\(\checkmark\)
-  \else
-    \ifx\l_@@_fraction_tl\@zero
-      \item #1
-    \else
-      \item #1\quad\((\l_@@_fraction_tl\%)\)
-    \fi
-  \fi}
+  \item #1
+  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
+    {}
+    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
+      {\quad\(\checkmark\)}
+      {\quad\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
 
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
-  \@@_write_begin:x{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
+  \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write:x{<text>\trim@spaces{#1}</text>}
     \ifx\l_@@_feedback_tl\@empty\relax\else
       \@@_write_begin:x{<feedback~format="html">}
@@ -1579,25 +1576,20 @@
 }
 
 \cs_new:Npn\@@_print_numerical_answer:x#1{
-  \ifdim0pt=\l_@@_tolerance_tl pt\relax
-    \def\moodle@numericalprint@tolerance{}%
-  \else
-    \edef\moodle@numericalprint@tolerance{\noexpand\pm\l_@@_tolerance_tl}%
-  \fi
-  \ifx\l_@@_fraction_tl\@hundred
-    \item \(#1\moodle@numericalprint@tolerance\quad\checkmark\)
-  \else
-    \ifx\l_@@_fraction_tl\@zero
-      \item \(#1\moodle@numericalprint@tolerance\)
-    \else
-      \item \(#1\moodle@numericalprint@tolerance\quad (\l_@@_fraction_tl\%)\)
-    \fi
-  \fi}
+  \fp_compare:nNnTF\l_@@_tolerance_fp=\c_zero_fp
+    {\def\moodle@numericalprint@tolerance{}}
+    {\edef\moodle@numericalprint@tolerance{\noexpand\pm\fp_to_tl:N\l_@@_tolerance_fp}}
+  \item \(#1\moodle@numericalprint@tolerance\)
+  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
+    {}
+    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
+      {\quad\(\checkmark\)}
+      {\quad\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
 
 \cs_new:Npn\@@_write_numerical_answer:x#1{
-  \@@_write_begin:x{<answer~fraction="\l_@@_fraction_tl"~format="plain_text">}
+  \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write:x{<text>#1</text>}
-    \@@_write:x{<tolerance>\l_@@_tolerance_tl</tolerance>}
+    \@@_write:x{<tolerance>\fp_to_tl:N\l_@@_tolerance_fp</tolerance>}
     \ifx\l_@@_feedback_tl\@empty\relax\else
       \@@_write_begin:x{<feedback~format="html">}
         \@@_write:x{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
@@ -1644,7 +1636,7 @@
 }
 
 \cs_new:Npn\@@_print_multi_answer:x#1
-  {\item #1 \((\l_@@_fraction_tl\%)\)}
+  {\item #1 \((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}
 
 % COMMON UTILITY: COUNTING CORRECT ANSWERS
    \newcounter{moodle@numcorrectanswers}%
@@ -1676,7 +1668,7 @@
      \ifx\test@i\@star
        \stepcounter{moodle@numcorrectanswers}%
      \else
-       \global\addtolength{\moodle@pointspercorrect}{-\l_@@_fraction_tl pt}%
+       \global\addtolength{\moodle@pointspercorrect}{-\l_@@_fraction_fp pt}%
      \fi
    }%
    \def\moodle@setautopoints#1pt{%
@@ -1689,7 +1681,7 @@
 
 
 \cs_new:Npn\@@_write_multi_answer:x#1{
-  \@@_write_begin:x{<answer~fraction="\l_@@_fraction_tl"~format="html">}
+  \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="html">}
     \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#1}
     \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
     \ifx\l_@@_feedback_tl\@empty\relax\else
@@ -1959,14 +1951,11 @@
     \def\moodle@answertext{#1#2}%
   \fi
   \trim@spaces@in\moodle@answertext
-  \ifx\l_@@_fraction_tl\@hundred
-    \g@addto@macro\clozemulti@coding{=}%
-  \fi
-  \ifnum0<\l_@@_fraction_tl\relax
-    \ifnum\l_@@_fraction_tl<100\relax
-      \xdef\clozemulti@coding{\expandonce\clozemulti@coding\otherpercent\l_@@_fraction_tl\otherpercent}%
-    \fi
-  \fi
+  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
+    {}
+    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
+      {\g@addto@macro\clozemulti@coding{=}}
+      {\xdef\clozemulti@coding{\expandonce\clozemulti@coding\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
   \xdef\clozemulti@coding{\expandonce\clozemulti@coding\expandonce\moodle@answertext}%
   \ifx\l_@@_feedback_tl\@empty\else
     \xdef\clozemulti@coding{\expandonce\clozemulti@coding\otherbackslash\otherhash\l_@@_feedback_tl}%
@@ -2022,16 +2011,14 @@
   \moodle@print@clozenumerical@answer@int@int%
 }%
 \def\moodle@print@clozenumerical@answer@int@int#1\@rdelim{%
-  \ifx\l_@@_fraction_tl\@hundred
-    \def\moodle@clozenumericalprint@fraction{$\checkmark$}%
-  \else
-    \edef\moodle@clozenumericalprint@fraction{(\l_@@_fraction_tl\%)}%
-  \fi
-  \ifdim0pt=\l_@@_tolerance_tl pt\relax
-    \def\moodle@clozenumericalprint@tolerance{}%
-  \else
-    \edef\moodle@clozenumericalprint@tolerance{\noexpand\pm\l_@@_tolerance_tl}%
-  \fi
+  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
+    {\def\moodle@clozenumericalprint@fraction{}}
+    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
+      {\def\moodle@clozenumericalprint@fraction{\(\checkmark\)}}
+      {\def\moodle@clozenumericalprint@fraction{\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
+  \fp_compare:nNnTF\l_@@_tolerance_fp=\c_zero_fp
+    {\def\moodle@clozenumericalprint@tolerance{}}
+    {\edef\moodle@clozenumericalprint@tolerance{\noexpand\pm\fp_to_tl:N\l_@@_tolerance_fp}}
   \xdef\moodle@clozenumericalprint@line{$#1\moodle@clozenumericalprint@tolerance$ & \moodle@clozenumericalprint@fraction}%
   \xa\g@addto@macro\xa\cloze@numerical@table@text\xa{\moodle@clozenumericalprint@line \\}%
 }%
@@ -2053,15 +2040,12 @@
   \fi
   \def\moodle@answertext{#1}%
   \trim@spaces@in\moodle@answertext
-  \ifx\l_@@_fraction_tl\@hundred
-    \g@addto@macro\clozenumerical@coding{=}%
-  \fi
-  \ifnum0<\l_@@_fraction_tl\relax
-    \ifnum\l_@@_fraction_tl<100\relax
-      \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherpercent\l_@@_fraction_tl\otherpercent}%
-    \fi
-  \fi
-  \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\moodle@answertext :\l_@@_tolerance_tl}%
+  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
+    {}
+    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
+      {\g@addto@macro\clozenumerical@coding{=}}
+      {\xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
+  \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\moodle@answertext :\fp_to_tl:N\l_@@_tolerance_fp}%
   \ifx\l_@@_feedback_tl\@empty\else
     \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherbackslash\otherhash\l_@@_feedback_tl}%
   \fi
@@ -2128,11 +2112,11 @@
   \moodle@print@clozeshortanswer@answer@int@int%
 }%
 \def\moodle@print@clozeshortanswer@answer@int@int#1\@rdelim{%
-  \ifx\l_@@_fraction_tl\@hundred
-    \def\moodle@clozeshortanswerprint@fraction{$\checkmark$}%
-  \else
-    \edef\moodle@clozeshortanswerprint@fraction{(\l_@@_fraction_tl\%)}%
-  \fi
+  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
+    {\def\moodle@clozeshortanswerprint@fraction{}}
+    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
+      {\def\moodle@clozeshortanswerprint@fraction{\(\checkmark\)}}
+      {\def\moodle@clozeshortanswerprint@fraction{\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
   \xdef\moodle@clozeshortanswerprint@line{#1 & \moodle@clozeshortanswerprint@fraction}%
   \xa\g@addto@macro\xa\cloze@shortanswer@table@text\xa{\moodle@clozeshortanswerprint@line \\}%
 }%
@@ -2154,14 +2138,11 @@
   \fi
   \def\moodle@answertext{#1}%
   \trim@spaces@in\moodle@answertext
-  \ifx\l_@@_fraction_tl\@hundred
-    \g@addto@macro\clozeshortanswer@coding{=}%
-  \fi
-  \ifnum0<\l_@@_fraction_tl\relax
-    \ifnum\l_@@_fraction_tl<100\relax
-      \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\otherpercent\l_@@_fraction_tl\otherpercent}%
-    \fi
-  \fi
+  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
+    {}
+    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
+      {\g@addto@macro\clozeshortanswer@coding{=}}
+      {\xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
   \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\moodle@answertext}%
   \ifx\l_@@_feedback_tl\@empty\else
     \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\otherbackslash\otherhash\l_@@_feedback_tl}%

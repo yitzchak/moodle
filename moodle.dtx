@@ -724,16 +724,19 @@
 % \subsection{Packages, Options, and Utilities}
 %    \begin{macrocode}
 \makeatletter
-\newif\ifmoodle@draftmode
 \newif\ifmoodle@tikzloaded
 
-%%DECLARATION OF OPTIONS
-\DeclareOption{draft}{\moodle@draftmodetrue}
+\RequirePackage{l3keys2e}
 
-\moodle@draftmodefalse
+%% DECLARATION OF OPTIONS
+\keys_define:nn{moodle}{
+  %% DRAFT MODE
+  draft .bool_set:N = \l_@@_draft_mode_bool,
+  draft .default:n = true,
+  draft .initial:n = false
+}
+
 \moodle@tikzloadedfalse
-
-\ProcessOptions
 
 \RequirePackage{xparse}
 \RequirePackage{etex}    %Expansion control, detokenization, etc.
@@ -876,14 +879,8 @@
     % to be saved in an external file.  We do NOT want to waste time
     % generating XML, and moreover trying to do so would cause errors
     % because of file dependencies.
-    #2%
-  }{%
-    \ifmoodle@draftmode
-      #2%
-    \else
-      #1%
-    \fi
-  }%
+    #2}
+    {\bool_if:NTF\l_@@_draft_mode_bool{#2}{#1}}
 }
 %    \end{macrocode}
 %
@@ -1354,6 +1351,9 @@
     {\@@_write:x{<clearwrong/>}}
     {}
 }
+
+%% Process options now allowing any key to specified at the package level.
+\ProcessKeysOptions{moodle}
 
 % TO DO: Implement hints
 %    \end{macrocode}

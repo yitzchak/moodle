@@ -976,8 +976,9 @@
 \@@_generate_write_html:nnn{question_text}{questiontext}{\moodle@questiontext}%{%
 
 \keys_define:nn{moodle}{
-  %% QUESTIONNAME
-  questionname .tl_set:N = \l_@@_question_name_tl,
+  %% NAME
+  name .tl_set:N = \l_@@_name_tl,
+  name .initial:n =,
 
   %% PENALTY FOR WRONG ATTEMPT
   penalty .tl_set:N = \l_@@_penalty_tl,
@@ -1001,9 +1002,9 @@
 }
 
 %% QUESTION NAME
-\cs_new:Npn\@@_write_question_name:{
+\cs_new:Npn\@@_write_name:{
   \@@_write_begin:x{<name>}
-    \@@_write:x{<text>\l_@@_question_name_tl</text>}
+    \@@_write:x{<text>\l_@@_name_tl</text>}
   \@@_write_end:x{</name>}
 }
 
@@ -1030,7 +1031,7 @@
 \@@_generate_write_data:nnn{hidden}{hidden}{\bool_if:NTF\l_@@_hidden_bool{1}{0}}
 
 \cs_new:Npn\@@_write_common_data:{
-  \@@_write_question_name:
+  \@@_write_name:
   \@@_write_question_text:
   \@@_write_default_grade:
   \@@_write_general_feedback:
@@ -1480,13 +1481,21 @@
   \fi
 }
 
+\int_new:N\g_@@_name_count_int
+
 \cs_new:Npn\@@_make_frontend#1{%
-  \NewEnviron{#1}[2][]{
+  \NewEnviron{#1}[1][]{
     \bgroup
       \def\endclozemulti@code{}
-      \moodleset{##1,questionname={##2}}
+      \moodleset{##1}
       \expandafter\gatheritems\xa{\BODY}
       \let\l_@@_question_header_tl=\gatheredheader
+      \bool_if:NTF\l_@@_in_cloze_bool{}{
+        \tl_if_empty:NTF\l_@@_name_tl
+          {
+            \int_incr:N\g_@@_name_count_int
+            \tl_set:Nx\l_@@_name_tl{question-\int_to_arabic:n\g_@@_name_count_int}}
+          {}}
       \ifhtmlizer@active
         %HTML version
         \edef\l_@@_cloze_text_tl{
@@ -1500,7 +1509,7 @@
       \else
         %First, the LaTeX processing
         \bool_if:NTF\l_@@_in_cloze_bool{}{
-          \item \textbf{\l_@@_question_name_tl}\par\noindent}
+          \item \textbf{\l_@@_name_tl}\par\noindent}
         \l_@@_question_header_tl
         \csname @@_print_#1_question:\endcsname
         \bool_if:NTF\l_@@_in_cloze_bool{}{
@@ -1871,14 +1880,13 @@
 % LATEX PROCESSING
 % SAVING ANSWERS TO MEMORY
 
-\NewEnviron{cloze}[2][]{%
+\NewEnviron{cloze}[1][]{%
   \bgroup
     \bool_set_true:N\l_@@_in_cloze_bool
-    \moodleset{default~grade=1}%
-    \moodleset{#1,questionname={#2}}%
+    \moodleset{#1}%
     % A cloze question won't have any \item's in it, so we just use \BODY.
     %First, the LaTeX processing.
-      \item \textbf{\l_@@_question_name_tl}\par
+      \item \textbf{\l_@@_name_tl}\par
       \noindent
       \BODY
     %Now, writing information to memory.

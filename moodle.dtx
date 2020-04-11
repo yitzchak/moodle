@@ -738,6 +738,8 @@
 
 \moodle@tikzloadedfalse
 
+\bool_new:N\l_@@_in_cloze_bool
+
 \RequirePackage{xparse}
 \RequirePackage{etex}    %Expansion control, detokenization, etc.
 \RequirePackage{etoolbox}%List management
@@ -1447,32 +1449,76 @@
 % 
 %    \begin{macrocode}
 
+\cs_new:Npn\@@_cloze_answer:x#1{%
+  \bgroup
+    \@@_cloze_answer_opt#1\l_@@_answer_delim
+  \egroup
+}%
+
+\NewDocumentCommand \@@_cloze_answer_opt { s O{} } {
+  \IfBooleanTF{#1}
+    {\moodleset{fraction=100}}
+    {\moodleset{fraction=0}}
+  \moodleset{feedback=,#2}
+  \@@_cloze_answer_text
+}
+
+\def\@@_cloze_answer_text#1\l_@@_answer_delim{
+  \ifgatherbeginningofloop\else
+    \g@addto@macro\l_@@_cloze_text_tl{\clozetilde} % separator between answers
+  \fi
+  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
+    {}
+    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
+      {\g@addto@macro\l_@@_cloze_text_tl{=}}
+      {\xa\g@addto@macro\xa\l_@@_cloze_text_tl\xa{\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
+  \def\text{#1}
+  \tl_trim_spaces:N\text
+  \xa\g@addto@macro\xa\l_@@_cloze_text_tl\xa{\text}
+  \ifx\l_@@_feedback_tl\@empty\else
+    \xa\g@addto@macro\xa\l_@@_cloze_text_tl\xa{\otherbackslash\otherhash\l_@@_feedback_tl}%
+  \fi
+}
+
 \cs_new:Npn\@@_make_frontend#1{%
-  \NewEnviron{#1}[2][]{%
+  \NewEnviron{#1}[2][]{
     \bgroup
-      \moodleset{##1,questionname={##2}}%
-      \expandafter\gatheritems\xa{\BODY}%
+      \def\endclozemulti@code{}
+      \moodleset{##1,questionname={##2}}
+      \expandafter\gatheritems\xa{\BODY}
       \let\l_@@_question_header_tl=\gatheredheader
-      %First, the LaTeX processing
-      \item \textbf{\l_@@_question_name_tl}\par
-      \noindent
-      \l_@@_question_header_tl
-      \csname @@_print_#1_question:\endcsname
-      %Now, writing information to XML
-      \@@_if_generate_xml:TF{%
-        \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
-        \csname @@_write_#1_question:\endcsname
-      }{}%
+      \ifhtmlizer@active
+        %HTML version
+        \edef\l_@@_cloze_text_tl{
+          \l_@@_question_header_tl
+          \{\l_@@_default_grade_tl :
+          \csname @@_cloze_#1_tag:\endcsname :}
+        \loopthroughitemswithcommand{\@@_cloze_answer:x}%
+        \g@addto@macro\l_@@_cloze_text_tl{\}}
+        \xa\gdef\xa\htmlize@afteraction@hook\xa{\l_@@_cloze_text_tl}%
+        \def\endclozemulti@code{\htmlize@patchendenvironment}%
+      \else
+        %First, the LaTeX processing
+        \bool_if:NTF\l_@@_in_cloze_bool{}{
+          \item \textbf{\l_@@_question_name_tl}\par\noindent}
+        \l_@@_question_header_tl
+        \csname @@_print_#1_question:\endcsname
+        \bool_if:NTF\l_@@_in_cloze_bool{}{
+          %Now, writing information to XML
+          \@@_if_generate_xml:TF{%
+            \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
+            \csname @@_write_#1_question:\endcsname
+          }{}}
+      \fi
+      \passvalueaftergroup\endclozemulti@code%
+      \passvalueaftergroup\htmlize@afteraction@hook%
     \egroup
-  }%
+  }[\endclozemulti@code]
 }
 
 %    \end{macrocode}
 %
 % \subsubsection{Essay Question Front-End}
-% The essay question is the only question type whose front end
-% is not yet created by |\@@_make_frontend|.
-% This is because of what it must do with its |\item|'s.
 % 
 %    \begin{macrocode}
 \@@_make_frontend{essay}
@@ -1533,6 +1579,11 @@
   \end{itemize}
 }
 
+\cs_new:Npn\@@_cloze_shortanswer_tag:{
+  \bool_if:NTF\l_@@_case_sensitive_bool
+    {SHORTANSWER_C}
+    {SHORTANSWER}}
+
 \cs_new:Npn\@@_print_shortanswer_answer:x#1{
   \item #1
   \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
@@ -1574,6 +1625,8 @@
     \@@_map_answers:xx{print}{numerical}
   \end{itemize}
 }
+
+\cs_new:Npn\@@_cloze_numerical_tag:{NUMERICAL}
 
 \cs_new:Npn\@@_print_numerical_answer:x#1{
   \fp_compare:nNnTF\l_@@_tolerance_fp=\c_zero_fp
@@ -1635,8 +1688,13 @@
   \end{enumerate}
 }
 
-\cs_new:Npn\@@_print_multi_answer:x#1
-  {\item #1 \((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}
+\cs_new:Npn\@@_print_multi_answer:x#1{
+  \item #1
+  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
+    {}
+    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
+      {\quad\(\checkmark\)}
+      {\quad\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
 
 % COMMON UTILITY: COUNTING CORRECT ANSWERS
    \newcounter{moodle@numcorrectanswers}%
@@ -1679,6 +1737,35 @@
 % TODO: Verify that negative scores are handled correctly.
 % TODO: Put these macros in same order as other sections'.
 
+\cs_new:Npn\@@_cloze_multi_tag:{
+  \ifcase\l_@@_display_mode_tl\relax
+    % Case 0: dropdown box style
+    \bool_if:NTF\l_@@_single_bool
+      {\bool_if:NTF{\l_@@_shuffle_bool}
+        {MULTICHOICE_S}
+        {MULTICHOICE}}
+      {\bool_if:NTF{\l_@@_shuffle_bool}
+        {MULTIRESPONSE_S}
+        {MULTIRESPONSE}}
+  \or
+    % Case 1: vertical style
+    \bool_if:NTF\l_@@_single_bool
+      {\bool_if:NTF{\l_@@_shuffle_bool}
+        {MULTICHOICE_VS}
+        {MULTICHOICE_V}}
+      {\bool_if:NTF{\l_@@_shuffle_bool}
+        {MULTIRESPONSE_S}
+        {MULTIRESPONSE}}
+  \else
+    % Case 2: horizontal radio buttons
+    \bool_if:NTF\l_@@_single_bool
+      {\bool_if:NTF{\l_@@_shuffle_bool}
+        {MULTICHOICE_HS}
+        {MULTICHOICE_H}}
+      {\bool_if:NTF{\l_@@_shuffle_bool}
+        {MULTIRESPONSE_HS}
+        {MULTIRESPONSE_H}}
+  \fi}
 
 \cs_new:Npn\@@_write_multi_answer:x#1{
   \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="html">}
@@ -1786,10 +1873,10 @@
 
 \NewEnviron{cloze}[2][]{%
   \bgroup
+    \bool_set_true:N\l_@@_in_cloze_bool
     \moodleset{default~grade=1}%
     \moodleset{#1,questionname={#2}}%
     % A cloze question won't have any \item's in it, so we just use \BODY.
-    \moodle@enableclozeenvironments
     %First, the LaTeX processing.
       \item \textbf{\l_@@_question_name_tl}\par
       \noindent
@@ -1802,351 +1889,12 @@
   \egroup%
 }
 
-\def\moodle@enableclozeenvironments{%
-  \let\multi=\clozemulti
-  \let\endmulti=\endclozemulti
-  \let\numerical=\clozenumerical
-  \let\endnumerical=\endclozenumerical
-  \let\shortanswer=\clozeshortanswer
-  \let\endshortanswer=\endclozeshortanswer
-}
-
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_cloze_question:{
   \@@_write_begin:x{<question~type="cloze">}%
     \@@_write_common_data:
   \@@_write_end:x{</question>}
   \@@_write:x{ }
-}%
-%    \end{macrocode}
-%
-% \subsubsection{Cloze Multiple Choice Questions}
-% 
-%    \begin{macrocode}
-
-\NewEnviron{clozemulti}[1][]{%
-  \bgroup
-    \moodleset{default~grade=1,#1}%
-    \expandafter\gatheritems\xa{\BODY}%
-    \let\l_@@_question_header_tl=\gatheredheader
-    \ifhtmlizer@active
-      %HTML version
-      \def\moodle@clozemulti@output{}%
-      \xa\g@addto@macro\xa\moodle@clozemulti@output\xa{\l_@@_question_header_tl}%
-      \def\clozemulti@coding{}%
-      \edef\clozemulti@coding{\otherlbrace\l_@@_default_grade_tl :}%
-      \ifcase\l_@@_display_mode_tl\relax
-        % Case 0: dropdown box style
-        \bool_if:NTF\l_@@_single_bool
-          {\bool_if:NTF{\l_@@_shuffle_bool}
-            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_S:}}
-            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE:}}}
-          {\bool_if:NTF{\l_@@_shuffle_bool}
-            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE_S:}}
-            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE:}}}
-      \or
-        % Case 1: vertical style
-        \bool_if:NTF\l_@@_single_bool
-          {\bool_if:NTF{\l_@@_shuffle_bool}
-            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_VS:}}
-            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_V:}}}
-          {\bool_if:NTF{\l_@@_shuffle_bool}
-            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE_S:}}
-            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE:}}}
-      \else
-        % Case 2: horizontal radio buttons
-        \bool_if:NTF\l_@@_single_bool
-          {\bool_if:NTF{\l_@@_shuffle_bool}
-            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_HS:}}
-            {\g@addto@macro{\clozemulti@coding}{MULTICHOICE_H:}}}
-          {\bool_if:NTF{\l_@@_shuffle_bool}
-            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE_HS:}}
-            {\g@addto@macro{\clozemulti@coding}{MULTIRESPONSE_H:}}}
-      \fi
-      \bgroup
-        \moodleset{feedback={}}%
-        \loopthroughitemswithcommand{\saveclozemultichoiceanswer}%
-      \egroup
-      \xa\g@addto@macro\xa\clozemulti@coding\xa{\otherrbrace}%
-      \xa\g@addto@macro\xa\moodle@clozemulti@output\xa{\clozemulti@coding}%
-      \xa\gdef\xa\htmlize@afteraction@hook\xa{\moodle@clozemulti@output}%
-      \def\endclozemulti@code{\htmlize@patchendenvironment}%
-    \else
-      %LaTeX version
-      \l_@@_question_header_tl% %Any introductory text just continues to be typeset.
-      \def\cloze@multichoice@table@text{}%
-      \loopthroughitemswithcommand{\moodle@print@clozemultichoice@answer}%
-      \ifcase\l_@@_display_mode_tl\relax
-        %Case 0: dropdown box style
-        \begin{tabular}[t]{|l|}\firsthline% (\firsthline is from the array package.)
-          \cloze@multichoice@table@text%
-        \end{tabular}%
-      \or
-        %Case 1: vertical style
-        \begin{itemize}\setlength\itemsep{0pt}\setlength\parskip{0pt}%
-          \cloze@multichoice@table@text%
-        \end{itemize}%
-      \else
-        %Case 2: horizontal radio buttons
-        \par{\cloze@multichoice@table@text}\par%
-      \fi
-      \def\endclozemulti@code{\relax}%
-    \fi
-    \passvalueaftergroup\endclozemulti@code%
-    \passvalueaftergroup\htmlize@afteraction@hook%
-  \egroup%
-}[\endclozemulti@code]%
-
-
-\def\moodle@print@clozemultichoice@answer#1{%
-  \moodle@print@clozemultichoice@answer@int#1\@rdelim%
-}%
-\newcommand\moodle@print@clozemultichoice@answer@int[1][]{%
-  \moodle@print@clozemultichoice@answer@int@int%
-}%
-\def\moodle@print@clozemultichoice@answer@int@int#1#2\@rdelim{%
-  % Case 0: "(answer) \\ \hline"
-  % Case 1: "\item (answer)"
-  % Case 2: "$\bullet~$(answer)\hfill"
-  \ifcase\l_@@_display_mode_tl\relax
-    \relax% Case 0
-  \or
-    \g@addto@macro\cloze@multichoice@table@text{\item}% Case 1
-  \else
-    \g@addto@macro\cloze@multichoice@table@text{$\bullet~$}% Case 2
-  \fi
-  \def\test@i{#1}%
-  \ifx\test@i\@star
-     \g@addto@macro\cloze@multichoice@table@text{#2$~\checkmark$}%
-  \else
-     \g@addto@macro\cloze@multichoice@table@text{#1#2}%
-  \fi
-  \ifcase\l_@@_display_mode_tl\relax
-    \g@addto@macro{\cloze@multichoice@table@text}{\\ \hline}% Case 0
-  \or
-    \relax% Case 1
-  \else
-    \g@addto@macro{\cloze@multichoice@table@text}{\hfill}% Case 2
-  \fi
-}%
-
-\def\saveclozemultichoiceanswer#1{%
-  \bgroup
-    \saveclozemultichoiceanswer@int#1\moodle@answer@rdelim
-  \egroup
-}%
-\newcommand\saveclozemultichoiceanswer@int[1][]{%
-  \moodleset{fraction=0,#1}%
-  \saveclozemultichoiceanswer@int@int%
-}%
-\def\saveclozemultichoiceanswer@int@int#1#2\moodle@answer@rdelim{%
-  \def\test@i{#1}%
-  \ifgatherbeginningofloop\else
-    \xa\gdef\xa\clozemulti@coding\xa{\clozemulti@coding\clozetilde}% separator between answers
-  \fi
-  \ifx\test@i\@star
-    \moodleset{fraction=100}%
-    \def\moodle@answertext{#2}%
-  \else
-    \def\moodle@answertext{#1#2}%
-  \fi
-  \trim@spaces@in\moodle@answertext
-  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
-    {}
-    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
-      {\g@addto@macro\clozemulti@coding{=}}
-      {\xdef\clozemulti@coding{\expandonce\clozemulti@coding\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
-  \xdef\clozemulti@coding{\expandonce\clozemulti@coding\expandonce\moodle@answertext}%
-  \ifx\l_@@_feedback_tl\@empty\else
-    \xdef\clozemulti@coding{\expandonce\clozemulti@coding\otherbackslash\otherhash\l_@@_feedback_tl}%
-  \fi
-}%
-%    \end{macrocode}
-%
-% \subsubsection{Cloze Numerical Questions}
-% 
-%    \begin{macrocode}
-\NewEnviron{clozenumerical}[1][]{%
-  \bgroup
-    \expandafter\gatheritems\expandafter{\BODY}%
-    \let\l_@@_question_header_tl=\gatheredheader
-    \moodleset{default~grade=1}%
-    \moodleset{#1}%
-    \ifhtmlizer@active
-      %HTML version
-      \def\moodle@clozenumerical@output{}%
-      \xa\g@addto@macro\xa\moodle@clozenumerical@output\xa{\l_@@_question_header_tl}%
-      \def\clozenumerical@coding{}%
-      \edef\clozenumerical@coding{\otherlbrace\l_@@_default_grade_tl :NUMERICAL:}%
-      \bgroup
-        \moodleset{feedback={}}%
-        \loopthroughitemswithcommand{\saveclozenumericalanswer}%
-      \egroup
-      \xa\g@addto@macro\xa\clozenumerical@coding\xa{\otherrbrace}%
-      \xa\g@addto@macro\xa\moodle@clozenumerical@output\xa{\clozenumerical@coding}%
-      \xa\gdef\xa\htmlize@afteraction@hook\xa{\moodle@clozenumerical@output}%
-      \def\endclozenumerical@code{\htmlize@patchendenvironment}%
-    \else
-      %LaTeX version
-      \l_@@_question_header_tl% %Any introductory text just continues to be typeset.
-      \def\cloze@numerical@table@text{}%
-      \loopthroughitemswithcommand{\moodle@print@clozenumerical@answer}%
-      \begin{tabular}[t]{|ll|}\firsthline
-        \cloze@numerical@table@text\hline%
-      \end{tabular}%
-      \def\endclozenumerical@code{\relax}%
-    \fi
-    \passvalueaftergroup\endclozenumerical@code%
-    \passvalueaftergroup\htmlize@afteraction@hook%
-  \egroup
-}[\endclozenumerical@code]%
-
-\def\moodle@print@clozenumerical@answer#1{%
-  \bgroup
-    \moodle@print@clozenumerical@answer@int#1\@rdelim
-  \egroup
-}%
-\newcommand\moodle@print@clozenumerical@answer@int[1][]{%
-  \moodleset{#1}%
-  \moodle@print@clozenumerical@answer@int@int%
-}%
-\def\moodle@print@clozenumerical@answer@int@int#1\@rdelim{%
-  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
-    {\def\moodle@clozenumericalprint@fraction{}}
-    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
-      {\def\moodle@clozenumericalprint@fraction{\(\checkmark\)}}
-      {\def\moodle@clozenumericalprint@fraction{\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
-  \fp_compare:nNnTF\l_@@_tolerance_fp=\c_zero_fp
-    {\def\moodle@clozenumericalprint@tolerance{}}
-    {\edef\moodle@clozenumericalprint@tolerance{\noexpand\pm\fp_to_tl:N\l_@@_tolerance_fp}}
-  \xdef\moodle@clozenumericalprint@line{$#1\moodle@clozenumericalprint@tolerance$ & \moodle@clozenumericalprint@fraction}%
-  \xa\g@addto@macro\xa\cloze@numerical@table@text\xa{\moodle@clozenumericalprint@line \\}%
-}%
-
-
-
-\def\saveclozenumericalanswer#1{%
-  \bgroup
-    \saveclozenumericalanswer@int#1\moodle@answer@rdelim
-  \egroup
-}%
-\newcommand\saveclozenumericalanswer@int[1][]{%
-  \moodleset{fraction=100,#1}%                  %%%%%% DEFAULT VALUE IS 100%
-  \saveclozenumericalanswer@int@int%
-}%
-\def\saveclozenumericalanswer@int@int#1\moodle@answer@rdelim{%
-  \ifgatherbeginningofloop\else
-    \xa\gdef\xa\clozenumerical@coding\xa{\clozenumerical@coding\clozetilde}% separator between answers
-  \fi
-  \def\moodle@answertext{#1}%
-  \trim@spaces@in\moodle@answertext
-  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
-    {}
-    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
-      {\g@addto@macro\clozenumerical@coding{=}}
-      {\xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
-  \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\moodle@answertext :\fp_to_tl:N\l_@@_tolerance_fp}%
-  \ifx\l_@@_feedback_tl\@empty\else
-    \xdef\clozenumerical@coding{\expandonce\clozenumerical@coding\otherbackslash\otherhash\l_@@_feedback_tl}%
-  \fi
-}%
-%    \end{macrocode}
-%
-% \subsubsection{Cloze Short Answer Questions}
-% 
-%    \begin{macrocode}
-\NewEnviron{clozeshortanswer}[1][]{%
-  \bgroup
-    \expandafter\gatheritems\expandafter{\BODY}%
-    \let\l_@@_question_header_tl=\gatheredheader
-    \moodleset{default~grade=1}%
-    \moodleset{#1}%
-    %Because nesting conditionals built by \csname doesn't work well,
-    %we'll test '\ifmoodle@case sensitive' now and save the result in \count0.
-    \bool_if:NTF\l_@@_case_sensitive_bool
-      {\count0=1\relax}
-      {\count0=0\relax}
-    \ifhtmlizer@active
-      %HTML version
-      \def\moodle@clozeshortanswer@output{}%
-      \xa\g@addto@macro\xa\moodle@clozeshortanswer@output\xa{\l_@@_question_header_tl}%
-      \def\clozeshortanswer@coding{}%
-      \ifnum\count0=1\relax
-        \edef\clozeshortanswer@coding{\otherlbrace\l_@@_default_grade_tl :SHORTANSWER_C:}%
-      \else
-        \edef\clozeshortanswer@coding{\otherlbrace\l_@@_default_grade_tl :SHORTANSWER:}%
-      \fi
-      \bgroup
-        \moodleset{feedback={}}%
-        \loopthroughitemswithcommand{\saveclozeshortansweranswer}%
-      \egroup
-      \xa\g@addto@macro\xa\clozeshortanswer@coding\xa{\otherrbrace}%
-      \xa\g@addto@macro\xa\moodle@clozeshortanswer@output\xa{\clozeshortanswer@coding}%
-      \xa\gdef\xa\htmlize@afteraction@hook\xa{\moodle@clozeshortanswer@output}%
-      \def\endclozeshortanswer@code{\htmlize@patchendenvironment}%
-    \else
-      %LaTeX version
-      \l_@@_question_header_tl% %Any introductory text just continues to be typeset.
-      \def\cloze@shortanswer@table@text{}%
-      \loopthroughitemswithcommand{\moodle@print@clozeshortanswer@answer}%
-      \ifnum\count0=1\relax
-        \marginpar{\tiny\mbox{(Case-Sensitive)}}%
-      \fi
-      \begin{tabular}[t]{|ll|}\firsthline
-        \cloze@shortanswer@table@text\hline%
-      \end{tabular}%
-      \def\endclozeshortanswer@code{\relax}%
-    \fi
-    \passvalueaftergroup\endclozeshortanswer@code%
-    \passvalueaftergroup\htmlize@afteraction@hook%
-  \egroup
-}[\endclozeshortanswer@code]%
-
-\def\moodle@print@clozeshortanswer@answer#1{%
-  \bgroup
-    \moodle@print@clozeshortanswer@answer@int#1\@rdelim
-  \egroup
-}%
-\newcommand\moodle@print@clozeshortanswer@answer@int[1][]{%
-  \moodleset{#1}%
-  \moodle@print@clozeshortanswer@answer@int@int%
-}%
-\def\moodle@print@clozeshortanswer@answer@int@int#1\@rdelim{%
-  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
-    {\def\moodle@clozeshortanswerprint@fraction{}}
-    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
-      {\def\moodle@clozeshortanswerprint@fraction{\(\checkmark\)}}
-      {\def\moodle@clozeshortanswerprint@fraction{\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
-  \xdef\moodle@clozeshortanswerprint@line{#1 & \moodle@clozeshortanswerprint@fraction}%
-  \xa\g@addto@macro\xa\cloze@shortanswer@table@text\xa{\moodle@clozeshortanswerprint@line \\}%
-}%
-
-
-
-\def\saveclozeshortansweranswer#1{%
-  \bgroup
-    \saveclozeshortansweranswer@int#1\moodle@answer@rdelim
-  \egroup
-}%
-\newcommand\saveclozeshortansweranswer@int[1][]{%
-  \moodleset{fraction=100,#1}%                  %%%%%% DEFAULT VALUE IS 100%
-  \saveclozeshortansweranswer@int@int%
-}%
-\def\saveclozeshortansweranswer@int@int#1\moodle@answer@rdelim{%
-  \ifgatherbeginningofloop\else
-    \xa\gdef\xa\clozeshortanswer@coding\xa{\clozeshortanswer@coding\clozetilde}% separator between answers
-  \fi
-  \def\moodle@answertext{#1}%
-  \trim@spaces@in\moodle@answertext
-  \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
-    {}
-    {\fp_compare:nNnTF\l_@@_fraction_fp={100}
-      {\g@addto@macro\clozeshortanswer@coding{=}}
-      {\xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
-  \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\moodle@answertext}%
-  \ifx\l_@@_feedback_tl\@empty\else
-    \xdef\clozeshortanswer@coding{\expandonce\clozeshortanswer@coding\otherbackslash\otherhash\l_@@_feedback_tl}%
-  \fi
 }%
 %    \end{macrocode}
 %

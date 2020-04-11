@@ -969,11 +969,11 @@
 
 \long\def\questiontext#1{%
   %\converttohtmlmacro\myoutput{#1}%
-  %\let\moodle@questiontext=\myoutput%
-  \def\moodle@questiontext{#1}%
+  %\let\l_@@_question_text_tl=\myoutput%
+  \def\l_@@_question_text_tl{#1}%
 }%
 
-\@@_generate_write_html:nnn{question_text}{questiontext}{\moodle@questiontext}%{%
+\@@_generate_write_html:nnn{question_text}{questiontext}{\l_@@_question_text_tl}%{%
 
 \keys_define:nn{moodle}{
   %% NAME
@@ -990,7 +990,7 @@
   feedback .initial:n =,
 
   %% DEFAULT GRADE
-  default~grade .tl_set:N = \l_@@_default_grade_tl,
+  default~grade .fp_set:N = \l_@@_default_grade_fp,
   default~grade .default:n = 1.0,
   default~grade .initial:n = 1.0,
   points .meta:n = {default~grade=#1},
@@ -1025,7 +1025,7 @@
 
 %% DEFAULT GRADE
 %How many points the quiz question is worth.
-\@@_generate_write_data:nnn{default_grade}{defaultgrade}{\l_@@_default_grade_tl}
+\@@_generate_write_data:nnn{default_grade}{defaultgrade}{\fp_to_decimal:N\l_@@_default_grade_fp}
 
 %% HIDDEN
 \@@_generate_write_data:nnn{hidden}{hidden}{\bool_if:NTF\l_@@_hidden_bool{1}{0}}
@@ -1466,18 +1466,18 @@
 
 \def\@@_cloze_answer_text#1\l_@@_answer_delim{
   \ifgatherbeginningofloop\else
-    \g@addto@macro\l_@@_cloze_text_tl{\clozetilde} % separator between answers
+    \tl_put_right:Nn\l_@@_cloze_text_tl{\clozetilde} % separator between answers
   \fi
   \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
     {}
     {\fp_compare:nNnTF\l_@@_fraction_fp={100}
-      {\g@addto@macro\l_@@_cloze_text_tl{=}}
-      {\xa\g@addto@macro\xa\l_@@_cloze_text_tl\xa{\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
+      {\tl_put_right:Nn\l_@@_cloze_text_tl{=}}
+      {\tl_put_right:Nx\l_@@_cloze_text_tl{\{\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
   \def\text{#1}
   \tl_trim_spaces:N\text
-  \xa\g@addto@macro\xa\l_@@_cloze_text_tl\xa{\text}
+  \tl_put_right:Nx\l_@@_cloze_text_tl{\text}
   \ifx\l_@@_feedback_tl\@empty\else
-    \xa\g@addto@macro\xa\l_@@_cloze_text_tl\xa{\otherbackslash\otherhash\l_@@_feedback_tl}%
+    \tl_put_right:Nx\l_@@_cloze_text_tl{\otherbackslash\otherhash\l_@@_feedback_tl}%
   \fi
 }
 
@@ -1489,7 +1489,7 @@
       \def\endclozemulti@code{}
       \moodleset{##1}
       \expandafter\gatheritems\xa{\BODY}
-      \let\l_@@_question_header_tl=\gatheredheader
+      \tl_set_eq:NN\l_@@_question_text_tl\gatheredheader
       \bool_if:NTF\l_@@_in_cloze_bool{}{
         \tl_if_empty:NTF\l_@@_name_tl
           {
@@ -1499,23 +1499,22 @@
       \ifhtmlizer@active
         %HTML version
         \edef\l_@@_cloze_text_tl{
-          \l_@@_question_header_tl
-          \{\l_@@_default_grade_tl :
+          \l_@@_question_text_tl
+          \{\fp_to_decimal:N\l_@@_default_grade_fp :
           \csname @@_cloze_#1_tag:\endcsname :}
         \loopthroughitemswithcommand{\@@_cloze_answer:x}%
-        \g@addto@macro\l_@@_cloze_text_tl{\}}
+        \tl_put_right:Nn\l_@@_cloze_text_tl{\}}
         \xa\gdef\xa\htmlize@afteraction@hook\xa{\l_@@_cloze_text_tl}%
         \def\endclozemulti@code{\htmlize@patchendenvironment}%
       \else
         %First, the LaTeX processing
         \bool_if:NTF\l_@@_in_cloze_bool{}{
           \item \textbf{\l_@@_name_tl}\par\noindent}
-        \l_@@_question_header_tl
+        \l_@@_question_text_tl
         \csname @@_print_#1_question:\endcsname
         \bool_if:NTF\l_@@_in_cloze_bool{}{
           %Now, writing information to XML
           \@@_if_generate_xml:TF{%
-            \xa\questiontext\xa{\l_@@_question_header_tl}% Save the question text.
             \csname @@_write_#1_question:\endcsname
           }{}}
       \fi
@@ -1883,15 +1882,15 @@
 \NewEnviron{cloze}[1][]{%
   \bgroup
     \bool_set_true:N\l_@@_in_cloze_bool
-    \moodleset{#1}%
     % A cloze question won't have any \item's in it, so we just use \BODY.
+    \tl_set_eq:NN\l_@@_question_text_tl\BODY
+    \moodleset{#1}%
     %First, the LaTeX processing.
-      \item \textbf{\l_@@_name_tl}\par
-      \noindent
-      \BODY
+    \item \textbf{\l_@@_name_tl}\par
+    \noindent
+    \l_@@_question_text_tl
     %Now, writing information to memory.
     \@@_if_generate_xml:TF{%
-      \xa\questiontext\xa{\BODY}% Save the question text as HTML.
       \@@_write_cloze_question:
     }{}%
   \egroup%

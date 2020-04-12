@@ -839,27 +839,18 @@
 % We now create the main |quiz| environment that will contain
 % the questions we write.  It outputs to XML as a |<question~type="category">| tag.
 %    \begin{macrocode}
-\newenvironment{quiz}[2][]%
+\newenvironment{quiz}[1][]%
   {\moodleset{#1}%
-   \@@_if_generate_xml:TF{%
+   \@@_if_generate_xml:T{%
      \@@_write_header:%
-     \@@_write_category:x{#2}%
-    }{}%
-    \subsection*{#2}%
+     \@@_write_category:%
+    }%
+    \subsection*{\l_@@_category_tl}%
     \begin{enumerate}%
    }
   {\end{enumerate}%
-   \@@_if_generate_xml:TF{\@@_write_footer:}{}}
+   \@@_if_generate_xml:T{\@@_write_footer:}}
 
-{\catcode`\$=12\catcode`\ =12%
-\cs_new:Npn\@@_write_category:x#1{%
-\@@_write_begin:x{<question~type="category">}%
-  \@@_write_begin:x{<category>}%
-    \@@_write:x{<text>$module$/#1</text>}%
-  \@@_write_end:x{</category>}%
-\@@_write_end:x{</question>}%
-\@@_write:x{ }%
-}}%
 %    \end{macrocode}                       
 % The next utility takes a single macro control sequence |#1|,
 % and allows that macro's current value to persist
@@ -874,16 +865,13 @@
 % \subsubsection{Main Switch: to create XML or not}
 % 
 %    \begin{macrocode}
-\cs_new:Npn\@@_if_generate_xml:TF#1#2{%
-  % If we are generating XML, do #1; otherwise do #2.
-  \tikzifexternalizing{%
-    % This run of LaTeX is currently ONLY generating a Tikz image
-    % to be saved in an external file.  We do NOT want to waste time
-    % generating XML, and moreover trying to do so would cause errors
-    % because of file dependencies.
-    #2}
-    {\bool_if:NTF\l_@@_draft_mode_bool{#2}{#1}}
-}
+\cs_new:Npn\@@_if_generate_xml:T#1{%
+  % If we are generating XML, do #1
+  % This run of LaTeX is currently ONLY generating a Tikz image
+  % to be saved in an external file.  We do NOT want to waste time
+  % generating XML, and moreover trying to do so would cause errors
+  % because of file dependencies.
+  \tikzifexternalizing{}{\bool_if:NTF\l_@@_draft_mode_bool{}{#1}}}
 %    \end{macrocode}
 %
 % \subsection{Key-Value Pairs for Quiz Questions}
@@ -927,6 +915,20 @@
 %   }
 % \end{Verbatim}
 %    \begin{macrocode}
+
+\cs_new:Npn\@@_write_html:n#1{
+  \tl_set:Nn\l_@@_text_tl{#1}
+  \tl_trim_spaces:N\l_@@_text_tl
+  \tl_if_empty:NTF\l_@@_text_tl
+    {\@@_write:x{<text/>}}
+    {
+      \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{\l_@@_text_tl}
+      \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+    }}
+
+\cs_new:Npn\@@_write_html:o#1{
+  \xa\@@_write_html:n\xa{#1}}
+
 \def\generate@moodle@write@code{%
   \@ifnextchar*\generate@moodle@write@data\generate@moodle@write@html
 }%
@@ -937,17 +939,22 @@
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
     \@@_write_begin:x{<#2~format="html">}
-    \xa\def\xa\test@iii\xa{#3}
-    \ifx\test@iii\@moodle@empty
-      \@@_write:x{<text/>}
-    \else
-      \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#3}
-      \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
-    \fi
+    \@@_write_html:o{#3}
     \@@_write_end:x{</#2>}
   }
 }
 
+\cs_new:Npn\@@_generate_write_html_opt:nnn#1#2#3{
+  % #1 = NAME for \@@_write_NAME:
+  % #2 = HTML tag
+  % #3 = what, exactly, to write
+  \cs_new:cpn{@@_write_#1:}{
+    \tl_if_blank:oTF{#3}{}{
+      \@@_write_begin:x{<#2~format="html">}
+      \@@_write_html:o{#3}
+      \@@_write_end:x{</#2>}}
+  }
+}
 
 \cs_new:Npn\@@_generate_write_data:nnn#1#2#3{
   % #1 = NAME for \@@_write_NAME:
@@ -976,6 +983,10 @@
 \@@_generate_write_html:nnn{question_text}{questiontext}{\l_@@_question_text_tl}%{%
 
 \keys_define:nn{moodle}{
+  %% CATEGORY
+  category .tl_set:N = \l_@@_category_tl,
+  category .initial:n =,
+
   %% NAME
   name .tl_set:N = \l_@@_name_tl,
   name .initial:n =,
@@ -1001,6 +1012,16 @@
   hidden .initial:n = false
 }
 
+{\catcode`\$=12\catcode`\ =12%
+\cs_new:Npn\@@_write_category:{%
+\@@_write_begin:x{<question~type="category">}%
+  \@@_write_begin:x{<category>}%
+    \@@_write:x{<text>$module$/\l_@@_category_tl</text>}%
+  \@@_write_end:x{</category>}%
+\@@_write_end:x{</question>}%
+\@@_write:x{ }%
+}}%
+
 %% QUESTION NAME
 \cs_new:Npn\@@_write_name:{
   \@@_write_begin:x{<name>}
@@ -1020,8 +1041,8 @@
 % \@@_write_general_feedback: uses the HTML tag <generalfeedback>
 % whereas \@@_write_feedback: uses the tag <feedback>.
 % Note that the general feedback is NOT inherited by each answer!
-\@@_generate_write_html:nnn{general_feedback}{generalfeedback}{\l_@@_feedback_tl}
-\@@_generate_write_html:nnn{feedback}{feedback}{\l_@@_feedback_tl}
+\@@_generate_write_html_opt:nnn{general_feedback}{generalfeedback}{\l_@@_feedback_tl}
+\@@_generate_write_html_opt:nnn{feedback}{feedback}{\l_@@_feedback_tl}
 
 %% DEFAULT GRADE
 %How many points the quiz question is worth.
@@ -1276,7 +1297,7 @@
   required .meta:n = {response~required=#1},
 
   %% RESPONSEFIELDLINES
-  response~field~lines .tl_set_x:N = \l_@@_response_field_lines_tl,
+  response~field~lines .tl_set_x:N = \l_@@_response_field_lines_int,
   response~field~lines .default:n = 15,
   response~field~lines .initial:n = 15,
 
@@ -1286,7 +1307,7 @@
   attachments~allowed .initial:n = 0,
 
   %% ATTACHMENTS REQUIRED
-  attachments~required .tl_set_x:N = \l_@@_attachments_required_int,
+  attachments~required .int_set:N = \l_@@_attachments_required_int,
   attachments~required .default:n = 1,
   attachments~required .initial:n = 0,
 
@@ -1308,7 +1329,7 @@
 %% RESPONSEFIELDLINES
 \@@_generate_write_data:nnn
   {response_field_lines}{responsefieldlines}
-  {\l_@@_response_field_lines_tl}
+  {\int_to_arabic:n\l_@@_response_field_lines_int}
 %Make synonyms 'input box size' or 'height' or 'lines'?
 
 %% ATTACHMENTS ALLOWED
@@ -1319,7 +1340,7 @@
 %% ATTACHMENTS REQUIRED
 \@@_generate_write_data:nnn
   {attachments_required}{attachmentsrequired}
-  {\l_@@_attachments_required_int}
+  {\int_to_arabic:n\l_@@_attachments_required_int}
 
 %% RESPONSE TEMPLATE
 \@@_generate_write_html:nnn{response_template}{responsetemplate}{\l_@@_response_template_tl}
@@ -1514,9 +1535,9 @@
         \csname @@_print_#1_question:\endcsname
         \bool_if:NTF\l_@@_in_cloze_bool{}{
           %Now, writing information to XML
-          \@@_if_generate_xml:TF{%
+          \@@_if_generate_xml:T{%
             \csname @@_write_#1_question:\endcsname
-          }{}}
+          }}
       \fi
       \passvalueaftergroup\endclozemulti@code%
       \passvalueaftergroup\htmlize@afteraction@hook%
@@ -1603,11 +1624,7 @@
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
   \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write:x{<text>\trim@spaces{#1}</text>}
-    \ifx\l_@@_feedback_tl\@empty\relax\else
-      \@@_write_begin:x{<feedback~format="html">}
-        \@@_write:x{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
-      \@@_write_end:x{</feedback>}
-    \fi
+    \@@_write_feedback:
   \@@_write_end:x{</answer>}}
 
 % WRITING QUESTION TO XML FILE
@@ -1651,11 +1668,7 @@
   \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write:x{<text>#1</text>}
     \@@_write:x{<tolerance>\fp_to_tl:N\l_@@_tolerance_fp</tolerance>}
-    \ifx\l_@@_feedback_tl\@empty\relax\else
-      \@@_write_begin:x{<feedback~format="html">}
-        \@@_write:x{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
-      \@@_write_end:x{</feedback>}
-    \fi
+    \@@_write_feedback:
   \@@_write_end:x{</answer>}}
 
 % WRITING QUESTION TO XML FILE
@@ -1777,13 +1790,8 @@
 
 \cs_new:Npn\@@_write_multi_answer:x#1{
   \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="html">}
-    \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#1}
-    \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
-    \ifx\l_@@_feedback_tl\@empty\relax\else
-      \@@_write_begin:x{<feedback~format="html">}
-        \@@_write:x{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
-      \@@_write_end:x{</feedback>}
-    \fi
+    \@@_write_html:o{#1}
+    \@@_write_feedback:
   \@@_write_end:x{</answer>}}
 
 % WRITING QUESTION TO XML FILE
@@ -1825,24 +1833,18 @@
 
 \def\@@_write_matching_answer_split#1\answer#2\l_@@_answer_delim{
   \@@_write_begin:x{<subquestion~format="html">}
-    \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#1}
-    \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+    \@@_write_html:o{#1}
     \bool_if:NTF\l_@@_drag_and_drop_bool
       {
-        \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{#2}
-        \@@_write_begin:x{<answer~format="html">}
-          \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+       \@@_write_begin:x{<answer~format="html">}
+          \@@_write_html:o{#2}
         \@@_write_end:x{</answer>}
       }{
         \@@_write_begin:x{<answer>}
           \@@_write:x{<text>#2</text>}
         \@@_write_end:x{</answer>}
       }
-    \ifx\l_@@_feedback_tl\@empty\relax\else
-      \@@_write_begin:x{<feedback~format="html">}
-        \@@_write:x{<text><![CDATA[<p>\l_@@_feedback_tl</p>]]></text>}
-      \@@_write_end:x{</feedback>}
-    \fi
+    \@@_write_feedback:
   \@@_write_end:x{</subquestion>}}
 
 % WRITING QUESTION TO XML FILE
@@ -1890,9 +1892,9 @@
     \noindent
     \l_@@_question_text_tl
     %Now, writing information to memory.
-    \@@_if_generate_xml:TF{%
+    \@@_if_generate_xml:T{%
       \@@_write_cloze_question:
-    }{}%
+    }%
   \egroup%
 }
 
@@ -2898,7 +2900,7 @@
       \moodle@endtikzpicture@hook
     }
     \def\moodle@endtikzpicture@hook{%
-      \@@_if_generate_xml:TF{%
+      \@@_if_generate_xml:T{%
         \ifpdf
           \msg_info:nnxx{moodle}{convert}{\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}{png}
           \pdftopng
@@ -2910,7 +2912,7 @@
         \msg_info:nnx{moodle}{read}{\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.enc}
         \savebaselxivdata
         \msg_info:nnx{moodle}{save}{base64}%
-      }{}%
+      }%
     }
     \tikzset{external/optimize=true}
     \tikzset{external/optimize~command~away={\VerbatimInput}{1}}
@@ -2952,13 +2954,13 @@
 %    \begin{macrocode}
 \AtEndDocument{
   \ifmoodle@tikzloaded
-    \@@_if_generate_xml:TF{
+    \@@_if_generate_xml:T{
       \ifwindows
         \ShellEscape{del~\tikzexternalrealjob-tikztemp-*.*}
       \else
         \ShellEscape{rm~\tikzexternalrealjob-tikztemp-*.*}
       \fi
-    }{}
+    }
   \fi
 }
 

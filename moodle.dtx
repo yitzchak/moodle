@@ -923,6 +923,7 @@
     {\@@_write:x{<text/>}}
     {
       \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{\l_@@_text_tl}
+      \tl_trim_spaces:N\moodle@htmltowrite
       \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
     }}
 
@@ -1067,6 +1068,11 @@
 %    \begin{macrocode}
 %% FRACTION -- how much this answer is worth out of 100 percent
 \keys_define:nn{moodle}{
+  %% TYPE
+  type .choices:nn =
+    {answer, hint, grader~info}
+    {\str_set:Nx \l_@@_type_str \l_keys_choice_tl},
+
   %% FRACTION
   fraction .fp_set:N = \l_@@_fraction_fp,
   fraction .default:n = 100,
@@ -1403,12 +1409,12 @@
   \IfBooleanTF{#3}
     {\moodleset{fraction=100}}
     {\moodleset{fraction=0}}
-  \moodleset{feedback=,#4}
+  \moodleset{feedback=,type=answer,#4}
   \@@_apply_answer_text{#1}{#2}
 }
 
 \def\@@_apply_answer_text#1#2#3\l_@@_answer_delim{
-  \csname @@_#1_#2_answer:x\endcsname{#3}}
+  \csname @@_#1_#2_\l_@@_type_str :x\endcsname{#3}}
 
 \cs_new:Npn\@@_map_answers:xx#1#2{
   \bgroup
@@ -1474,6 +1480,7 @@
 \cs_new:Npn\@@_cloze_answer:x#1{%
   \bgroup
     \@@_cloze_answer_opt#1\l_@@_answer_delim
+    \passvalueaftergroup\l_@@_cloze_text_tl
   \egroup
 }%
 
@@ -1493,8 +1500,8 @@
     {}
     {\fp_compare:nNnTF\l_@@_fraction_fp={100}
       {\tl_put_right:Nn\l_@@_cloze_text_tl{=}}
-      {\tl_put_right:Nx\l_@@_cloze_text_tl{\{\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
-  \def\text{#1}
+      {\tl_put_right:Nx\l_@@_cloze_text_tl{\otherpercent\fp_to_decimal:N\l_@@_fraction_fp\otherpercent}}}
+  \tl_set:Nn\text{#1}
   \tl_trim_spaces:N\text
   \tl_put_right:Nx\l_@@_cloze_text_tl{\text}
   \ifx\l_@@_feedback_tl\@empty\else
@@ -1614,18 +1621,26 @@
     {SHORTANSWER}}
 
 \cs_new:Npn\@@_print_shortanswer_answer:x#1{
-  \item #1
   \fp_compare:nNnTF\l_@@_fraction_fp=\c_zero_fp
-    {}
+    {\item}
     {\fp_compare:nNnTF\l_@@_fraction_fp={100}
-      {\quad\(\checkmark\)}
-      {\quad\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
+      {\item[\quad\(\checkmark\)]}
+      {\item[\quad\(\fp_to_decimal:N\l_@@_fraction_fp\%\)]}}
+  #1}
+
+\cs_new:Npn\@@_print_shortanswer_hint:x#1{
+  \item[Hint:]~#1}
 
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
   \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write:x{<text>\trim@spaces{#1}</text>}
     \@@_write_feedback:
   \@@_write_end:x{</answer>}}
+
+\cs_new:Npn\@@_write_shortanswer_hint:x#1{
+  \@@_write_begin:x{<hint~format="html">}
+    \@@_write_html:n{#1}
+  \@@_write_end:x{</hint>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_shortanswer_question:{

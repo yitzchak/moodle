@@ -637,8 +637,8 @@
 %   \item GhostScript (\url{www.ghostscript.com}) is used to convert the PDF output
 %         from \TikZ\ into a PNG raster graphics file.
 %         The default command line is presumed to be |gswin64c.exe|
-%         (if |\ifwindows| from the |ifplatform| package returns true)
-%         or |gs| (if |\ifwindows| returns false).
+%         (if |\sys_if_platform_windows:TF| returns true)
+%         or |gs| (if |\sys_if_platform_windows:TF| returns false).
 %         If your system requires a different command line to invoke Ghostscript,
 %         \DescribeMacro{\ghostscriptcommand}
 %         you may change it by invoking |\ghostscriptcommand|\marg{executable filename}.
@@ -748,8 +748,6 @@
 \RequirePackage{trimspaces} %To remove extra spaces from strings
 \RequirePackage{xpatch}  %To patch commands easily in HTML mode
 \RequirePackage{array}   %For formatting tables in the LaTeX mode of Clozes
-\RequirePackage{ifplatform} % To choose Ghostscript commands
-\RequirePackage{ifpdf} % Needed to know whether we can convert output from PDF to PNG
 \RequirePackage{shellesc} %For write18
 
 \RequirePackage{getitems} %To gather the header and items
@@ -2736,11 +2734,9 @@
 \def\opensslcommand{\htmlize@setexecutable\openssl}
 \def\imagemagickcommand{\htmlize@setexecutable\htmlize@imagemagick@convert}
 
-\ifwindows%
-  \ghostscriptcommand{gswin64c.exe}%
-\else%
-  \ghostscriptcommand{gs}%
-\fi%
+\sys_if_platform_windows:TF
+  {\ghostscriptcommand{gswin64c.exe}}
+  {\ghostscriptcommand{gs}}
 
 \opensslcommand{openssl}%
 \imagemagickcommand{convert}%
@@ -2890,11 +2886,11 @@
     \tikzexternalize%
     \tikzset{external/force~remake}%
 
-    \ifpdf
+    \sys_if_output_pdf:TF{
       \def\pdftopng{\ShellEscape{\gs\otherspace -dBATCH~-dNOPAUSE~-sDEVICE=pngalpha~-sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-r200~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}}
-    \else
+    }{
       \def\pstopng{\ShellEscape{\gs\otherspace -dBATCH~-dNOPAUSE~-sDEVICE=pngalpha~-sOutputFile=\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-r200~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.ps}}
-    \fi
+    }
     \def\pngtobaselxiv{\ShellEscape{\openssl\otherspace enc~-base64~-in~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png~-out~\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.enc}}
 
     \let\moodle@oldtikzpicture=\tikzpicture
@@ -2916,12 +2912,12 @@
     }
     \def\moodle@endtikzpicture@hook{%
       \@@_if_generate_xml:T{%
-        \ifpdf
+        \sys_if_output_pdf:TF{
           \msg_info:nnxx{moodle}{convert}{\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.pdf}{png}
           \pdftopng
-        \else
+        }{
           \pstopng
-        \fi
+        }
         \msg_info:nnxx{moodle}{convert}{\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.png}{base64}
         \pngtobaselxiv
         \msg_info:nnx{moodle}{read}{\tikzexternalrealjob-tikztemp-\the\numconvertedpictures.enc}
@@ -2970,11 +2966,9 @@
 \AtEndDocument{
   \ifmoodle@tikzloaded
     \@@_if_generate_xml:T{
-      \ifwindows
-        \ShellEscape{del~\tikzexternalrealjob-tikztemp-*.*}
-      \else
-        \ShellEscape{rm~\tikzexternalrealjob-tikztemp-*.*}
-      \fi
+      \sys_if_platform_windows:TF
+        {\ShellEscape{del~\tikzexternalrealjob-tikztemp-*.*}}
+        {\ShellEscape{rm~\tikzexternalrealjob-tikztemp-*.*}}
     }
   \fi
 }

@@ -905,8 +905,19 @@
 }
 
 \NewDocumentCommand\dataset{m}{
-  \tl_gset:cn {@@_dataset_fu_tl} {#1}}
+  \tl_gset:cn {g_@@_dataset_fu_tl} {#1}}
+
+\cs_new:Npn \@@_initialize_dataset_items: {
+  \seq_clear:N \l_@@_dataset_items_seq
   
+  \int_step_inline:nn \l_@@_dataset_count_int {
+    \seq_put_left:Nx \l_@@_dataset_items_seq
+      {\fp_to_decimal:n {round(\l_@@_dataset_minimum_fp + rand() * (\l_@@_dataset_maximum_fp - \l_@@_dataset_minimum_fp), \l_@@_dataset_decimals_int)}}
+  }
+}
+
+\int_new:N \l_@@_item_int
+
 \cs_new:Npn \@@_write_dataset: {
   \@@_write_begin:n{<dataset_definition>}
     \@@_write_begin:n{<status>}
@@ -928,26 +939,48 @@
     \@@_write_begin:n{<decimals>}
       \@@_write_plain_text:o {\int_to_arabic:n\l_@@_dataset_decimals_int}
     \@@_write_end:n{</decimals>}
-    \@@_write_begin:n{<itemcount>}
-      \@@_write_plain_text:o {\int_to_arabic:n\l_@@_dataset_count_int}
-    \@@_write_end:n{</itemcount>}
-    \@@_write_begin:n{<number_of_items>}
-      \@@_write_plain_text:o {\int_to_arabic:n\l_@@_dataset_count_int}
-    \@@_write_end:n{</number_of_items>}
+    \@@_write:n {<itemcount>\int_to_arabic:n\l_@@_dataset_count_int</itemcount>}
+    \@@_write:n {<number_of_items>\int_to_arabic:n\l_@@_dataset_count_int</number_of_items>}
+    \@@_write_begin:n{<dataset_items>}
+      \int_zero:N \l_@@_item_int
+      \seq_map_inline:Nn \l_@@_dataset_items_seq
+        {
+          \int_incr:N \l_@@_item_int
+          \@@_write_begin:n {<dataset_item>}
+            \@@_write:n {<number>\int_to_arabic:n\l_@@_item_int</number>}
+            \@@_write:n {<value>##1</value>}
+          \@@_write_end:n {</dataset_item>}
+        }
+    \@@_write_end:n{</dataset_items>}
   \@@_write_end:n{</dataset_definition>}
 }
+
+\seq_new:N \l_@@_dataset_items_seq
 
 \cs_new:Npn \@@_write_dataset:n #1 {
   \bgroup
     \str_if_in:nnTF {#1} {=}
-      {\keys_set:nn {moodle / dataset} {status=private,#1}}
-      {\keys_set:nv {moodle / dataset} {@@_dataset_#1_tl}}
-    \@@_write_dataset:
+      {
+        \keys_set:nn {moodle / dataset} {status=private,#1}
+        \@@_initialize_dataset_items:
+      }
+      {
+        \keys_set:nv {moodle / dataset} {g_@@_dataset_#1_tl}
+        \cs_if_exist:cTF {g_@@_dataset_#1_items_seq}
+          {
+            \seq_set_eq:Nc \l_@@_dataset_items_seq {g_@@_dataset_#1_items_seq}
+          }
+          {
+            \@@_initialize_dataset_items:
+            \seq_gset_eq:cN {g_@@_dataset_#1_items_seq} \l_@@_dataset_items_seq
+          }
+      }    
+      \@@_write_dataset:
   \egroup
 }
 
 \cs_new:Npn \@@_if_calculated:TF #1 #2 {
-  \clist_if_empty:NTF \l_@@_distributions_clist {#1} {#2}} 
+  \clist_if_empty:NTF \l_@@_datasets_clist {#2} {#1}} 
 
 % The various options are set using key-value syntax of |xkeyval|.
 %    \begin{macrocode}
@@ -1241,6 +1274,14 @@
   tolerance .default:n = 0,
   tolerance .initial:n = 0,
 
+  %% tolerance type
+  tolerance~type .choice:,
+  tolerance~type / relative .code:n = \tl_set:Nn\l_@@_tolerance_type_tl{1},
+  tolerance~type / nominal .code:n = \tl_set:Nn\l_@@_tolerance_type_tl{2},
+  tolerance~type / geometric .code:n = \tl_set:Nn\l_@@_tolerance_type_tl{3},
+  tolerance~type .default:n = relative,
+  tolerance~type .initial:n = relative,
+
   %% SHOW UNITS
   show~units .choice:,
   show~units / none      .code:n = \def\l_@@_show_units_tl{0},
@@ -1271,14 +1312,36 @@
   %% UNITS
   units .code:n = \keyval_parse:NNn\def_unit:n\def_unit:nn{#1},
   
-  %% distributions
-  distributions .clist_set:N = \l_@@_distributions_clist,
-  distributions .initial:n = {}
+  %% datasets
+  datasets .clist_set:N = \l_@@_datasets_clist,
+  datasets .initial:n = {},
+  
+  %% dataset
+  dataset .code:n = {\clist_put_right:Nn\l_@@_datasets_clist{#1}},
+
+  %% synchronize
+  synchronize .bool_set:N = \l_@@_synchronize_bool,
+  synchronize .default:n = true,
+  synchronize .initial:n = false,
+  
+  %% display format
+  display~format .choice:,
+  display~format / decimal .code:n = \tl_set:Nn\l_@@_display_format_tl{1},
+  display~format / significant .code:n = \tl_set:Nn\l_@@_display_format_tl{2},
+  display~format .default:n = decimal,
+  display~format .initial:n = decimal,
+  
+  %% display digits
+  display~digits .int_set:N = \l_@@_display_digits_int,
+  display~digits .default:n = 1,
+  display~digits .initial:n = 2
 }
 
-%There is no \moodle@writetolerance, because in the XML the
-%tolerance is given within the answer tag,
-%like <answer fraction=100 tolerance=0.03>.
+%% tolerance
+\@@_generate_write_data:nnn{tolerance}{tolerance}{\fp_to_tl:N\l_@@_tolerance_fp}%
+
+%% tolerance type
+\@@_generate_write_data:nnn{tolerance_type}{tolerancetype}{\l_@@_tolerance_type_tl}%
 
 %% SHOW UNITS
 \@@_generate_write_data:nnn{show_units}{showunits}{\l_@@_show_units_tl}%
@@ -1311,6 +1374,15 @@
     \@@_write_end:n{</units>}
   }
 }
+
+%% synchronize
+\@@_generate_write_data:nnn{synchronize}{synchronize}{\bool_if:NTF\l_@@_synchronize_bool{1}{0}}
+
+%% display format
+\@@_generate_write_data:nnn{display_format}{correctanswerformat}{\l_@@_display_format_tl}%
+
+%% display digits
+\@@_generate_write_data:nnn{display_digits}{correctanswerlength}{\int_to_arabic:n\l_@@_display_digits_int}%
 
 %    \end{macrocode}
 % \subsubsection{Keys for short answer questions}
@@ -1441,22 +1513,6 @@
     {\@@_write:n{<clearwrong/>}}
     {}
 }
-
-% KEYS for calculated
-
-\keys_define:nn{moodle}{
-  dataset .code:n = {},
-  
-  datasets 
-
-  %% synchronize
-  synchronize .bool_set:N = \l_@@_synchronize_bool,
-  synchronize .default:n = true,
-  synchronize .initial:n = false
-}
-
-%% synchronize
-\@@_generate_write_data:nnn{synchronize}{synchronize}{\bool_if:NTF\l_@@_synchronize_bool{1}{0}}
 
 %% Process options now allowing any key to specified at the package level.
 \ProcessKeysPackageOptions{moodle}
@@ -1758,7 +1814,14 @@
 \cs_new:Npn\@@_write_numerical_answer:x#1{
   \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write_plain_text:n{#1}
-    \@@_write:n{<tolerance>\fp_to_tl:N\l_@@_tolerance_fp</tolerance>}
+    \@@_write_tolerance:
+    \@@_if_calculated:TF
+      {
+        \@@_write_tolerance_type:
+        \@@_write_display_format:
+        \@@_write_display_digits:
+      }
+      {}
     \@@_write_feedback:
   \@@_write_end:n{</answer>}}
 
@@ -1767,13 +1830,13 @@
   \@@_write_begin:n{<question~type="\@@_if_calculated:TF{calculated}{numerical}">}
     \@@_write_common_data:
     \@@_if_calculated:TF
-      {}
       {
         \@@_write_synchronize:
         \@@_write_begin:n{<dataset_definitions>}
-          \clist_map_function:NN\l_@@_distributions_clist\@@_write_dataset:n
+          \clist_map_function:NN\l_@@_datasets_clist\@@_write_dataset:n
         \@@_write_end:n{</dataset_definitions>}
       }
+      {}
     \@@_write_show_units:
     \@@_write_unit_grading_type:
     \@@_write_unit_penalty:

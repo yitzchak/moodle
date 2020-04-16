@@ -803,13 +803,13 @@
   \int_gzero_new:N\g_@@_xml_indent_int{0}
   \iow_new:N\g_@@_xml_iow
   \iow_open:Nn\g_@@_xml_iow\outputfilename
-  \@@_write:x{<?xml~version="1.0"~encoding="UTF-8"?>}%
-  \@@_write_begin:x{<quiz>}%
-  \@@_write:x{ }%
+  \@@_write:n{<?xml~version="1.0"~encoding="UTF-8"?>}%
+  \@@_write_begin:n{<quiz>}%
+  \@@_write:n{ }%
 }%
 \cs_new:Npn\@@_write_footer:{%
   \@@_decr_indent:
-  \@@_write_end:x{</quiz>}%
+  \@@_write_end:n{</quiz>}%
   \iow_close:N\g_@@_xml_iow
 }%
 %    \end{macrocode}
@@ -820,18 +820,20 @@
 %    \begin{macrocode}
 \cs_new:Npn\g_@@_indent_str#1{\otherspace\otherspace}
 
-\cs_new:Npn\@@_write:x#1{
+\cs_new:Npn\@@_write:n#1{
   \iow_now:Nx\g_@@_xml_iow{
     \int_step_function:nN\g_@@_xml_indent_int\g_@@_indent_str
     #1}}
 
-\cs_new:Npn\@@_write_begin:x#1{
-  \@@_write:x{#1}
+\cs_generate_variant:Nn\@@_write:n{x}
+
+\cs_new:Npn\@@_write_begin:n#1{
+  \@@_write:n{#1}
   \@@_incr_indent:}
 
-\cs_new:Npn\@@_write_end:x#1{
+\cs_new:Npn\@@_write_end:n#1{
   \@@_decr_indent:
-  \@@_write:x{#1}}
+  \@@_write:n{#1}}
 
 %    \end{macrocode}
 % We now create the main |quiz| environment that will contain
@@ -874,6 +876,79 @@
 %
 % \subsection{Key-Value Pairs for Quiz Questions}
 % 
+
+\keys_define:nn {moodle / dataset} {
+  %% name
+  name .tl_set:N = \l_@@_dataset_name_tl,
+  name .initial:n =,
+
+  %% status
+  status .tl_set:N = \l_@@_dataset_status_tl,
+  status .initial:n = {shared},
+  status .default:n = {shared},
+  
+  distribution .choices:nn = { uniform, loguniform }
+    { \tl_set_eq:NN \l_@@_dataset_distribution_tl \l_keys_choice_tl },
+  distribution .initial:n = {uniform},
+  
+  minimum .fp_set:N = \l_@@_dataset_minimum_fp,
+  minimum .initial:n = 1,
+
+  maximum .fp_set:N = \l_@@_dataset_maximum_fp,
+  maximum .initial:n = 10,
+
+  decimals .int_set:N = \l_@@_dataset_decimals_int,
+  decimals .initial:n = 1,
+
+  count .int_set:N = \l_@@_dataset_count_int,
+  count .initial:n = 10,
+}
+
+\NewDocumentCommand\dataset{m}{
+  \tl_gset:cn {@@_dataset_fu_tl} {#1}}
+  
+\cs_new:Npn \@@_write_dataset: {
+  \@@_write_begin:n{<dataset_definition>}
+    \@@_write_begin:n{<status>}
+      \@@_write_plain_text:o {\l_@@_dataset_status_tl}
+    \@@_write_end:n{</status>}
+    \@@_write:n {<type>calculated</type>}
+    \@@_write_begin:n{<name>}
+      \@@_write_plain_text:o {\l_@@_dataset_name_tl}
+    \@@_write_end:n{</name>}
+    \@@_write_begin:n{<distribution>}
+      \@@_write_plain_text:o {\l_@@_dataset_distribution_tl}
+    \@@_write_end:n{</distribution>}
+    \@@_write_begin:n{<minimum>}
+      \@@_write_plain_text:o {\fp_to_decimal:N\l_@@_dataset_minimum_fp}
+    \@@_write_end:n{</minimum>}
+    \@@_write_begin:n{<maximum>}
+      \@@_write_plain_text:o {\fp_to_decimal:N\l_@@_dataset_maximum_fp}
+    \@@_write_end:n{</maximum>}
+    \@@_write_begin:n{<decimals>}
+      \@@_write_plain_text:o {\int_to_arabic:n\l_@@_dataset_decimals_int}
+    \@@_write_end:n{</decimals>}
+    \@@_write_begin:n{<itemcount>}
+      \@@_write_plain_text:o {\int_to_arabic:n\l_@@_dataset_count_int}
+    \@@_write_end:n{</itemcount>}
+    \@@_write_begin:n{<number_of_items>}
+      \@@_write_plain_text:o {\int_to_arabic:n\l_@@_dataset_count_int}
+    \@@_write_end:n{</number_of_items>}
+  \@@_write_end:n{</dataset_definition>}
+}
+
+\cs_new:Npn \@@_write_dataset:n #1 {
+  \bgroup
+    \str_if_in:nnTF {#1} {=}
+      {\keys_set:nn {moodle / dataset} {status=private,#1}}
+      {\keys_set:nv {moodle / dataset} {@@_dataset_#1_tl}}
+    \@@_write_dataset:
+  \egroup
+}
+
+\cs_new:Npn \@@_if_calculated:TF #1 #2 {
+  \clist_if_empty:NTF \l_@@_distributions_clist {#1} {#2}} 
+
 % The various options are set using key-value syntax of |xkeyval|.
 %    \begin{macrocode}
 \def\moodleset#1{\keys_set:nn{moodle}{#1}}
@@ -895,12 +970,12 @@
 %   \gdef\moodle@writeexcuse{%
 %     \xa\def\xa\test@iii\xa{\theexcuse}%
 %     \ifx\test@iii\@moodle@empty
-%       \@@_write:x{  <EXC format="html"><text/></EXC>}%
+%       \@@_write:n{  <EXC format="html"><text/></EXC>}%
 %     \else
 %       \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{\theexcuse}%
-%       \@@_write:x{  <EXC format="html">}%
-%       \@@_write:x{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}%
-%       \@@_write:x{  </EXC>}%
+%       \@@_write:n{  <EXC format="html">}%
+%       \@@_write:n{    <text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}%
+%       \@@_write:n{  </EXC>}%
 %     \fi
 %   }%
 % \end{Verbatim}
@@ -909,37 +984,41 @@
 % would expand only to
 % \begin{Verbatim}[gobble=4,frame=single]
 %   \gdef\moodle@writeexcuse{%
-%      \@@_write:x{  <EXC>\theexcuse</EXC>}%
+%      \@@_write:n{  <EXC>\theexcuse</EXC>}%
 %   }
 % \end{Verbatim}
 %    \begin{macrocode}
+
+\cs_new:Npn\@@_write_plain_text:n#1{
+  \tl_set:Nn\l_@@_text_tl{#1}
+  \tl_trim_spaces:N\l_@@_text_tl
+  \tl_if_empty:NTF\l_@@_text_tl
+    {\@@_write:n{<text/>}}
+    {\@@_write:n{<text>\l_@@_text_tl</text>}}}
+
+\cs_generate_variant:Nn \@@_write_plain_text:n { o, v }
 
 \cs_new:Npn\@@_write_html:n#1{
   \tl_set:Nn\l_@@_text_tl{#1}
   \tl_trim_spaces:N\l_@@_text_tl
   \tl_if_empty:NTF\l_@@_text_tl
-    {\@@_write:x{<text/>}}
+    {\@@_write:n{<text/>}}
     {
       \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{\l_@@_text_tl}
       \tl_trim_spaces:N\moodle@htmltowrite
-      \@@_write:x{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
+      \@@_write:n{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
     }}
 
-\cs_new:Npn\@@_write_html:o#1{
-  \xa\@@_write_html:n\xa{#1}}
-
-\def\generate@moodle@write@code{%
-  \@ifnextchar*\generate@moodle@write@data\generate@moodle@write@html
-}%
+\cs_generate_variant:Nn \@@_write_html:n { o }
 
 \cs_new:Npn\@@_generate_write_html:nnn#1#2#3{
   % #1 = NAME for \@@_write_NAME:
   % #2 = HTML tag
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
-    \@@_write_begin:x{<#2~format="html">}
+    \@@_write_begin:n{<#2~format="html">}
     \@@_write_html:o{#3}
-    \@@_write_end:x{</#2>}
+    \@@_write_end:n{</#2>}
   }
 }
 
@@ -949,9 +1028,9 @@
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
     \tl_if_blank:oTF{#3}{}{
-      \@@_write_begin:x{<#2~format="html">}
+      \@@_write_begin:n{<#2~format="html">}
       \@@_write_html:o{#3}
-      \@@_write_end:x{</#2>}}
+      \@@_write_end:n{</#2>}}
   }
 }
 
@@ -960,7 +1039,7 @@
   % #2 = HTML tag
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
-    \@@_write:x{<#2>#3</#2>}
+    \@@_write:n{<#2>#3</#2>}
   }
 }
 
@@ -991,7 +1070,7 @@
   name .initial:n =,
 
   %% PENALTY FOR WRONG ATTEMPT
-  penalty .tl_set:N = \l_@@_penalty_tl,
+  penalty .fp_set:N = \l_@@_penalty_fp,
   penalty .default:n = 0.1,
   penalty .initial:n = 0.1,
 
@@ -1013,23 +1092,23 @@
 
 {\catcode`\$=12\catcode`\ =12%
 \cs_new:Npn\@@_write_category:{%
-\@@_write_begin:x{<question~type="category">}%
-  \@@_write_begin:x{<category>}%
-    \@@_write:x{<text>$module$/\l_@@_category_tl</text>}%
-  \@@_write_end:x{</category>}%
-\@@_write_end:x{</question>}%
-\@@_write:x{ }%
+\@@_write_begin:n{<question~type="category">}%
+  \@@_write_begin:n{<category>}%
+    \@@_write:n{<text>$module$/\l_@@_category_tl</text>}%
+  \@@_write_end:n{</category>}%
+\@@_write_end:n{</question>}%
+\@@_write:n{ }%
 }}%
 
 %% QUESTION NAME
 \cs_new:Npn\@@_write_name:{
-  \@@_write_begin:x{<name>}
-    \@@_write:x{<text>\l_@@_name_tl</text>}
-  \@@_write_end:x{</name>}
+  \@@_write_begin:n{<name>}
+    \@@_write:n{<text>\l_@@_name_tl</text>}
+  \@@_write_end:n{</name>}
 }
 
 %% PENALTY FOR WRONG ATTEMPT
-\@@_generate_write_data:nnn{penalty}{penalty}{\l_@@_penalty_tl}
+\@@_generate_write_data:nnn{penalty}{penalty}{\fp_to_decimal:N\l_@@_penalty_fp}
 
 %% FEEDBACK
 % Moodle allows for feedback tailored to each question,
@@ -1136,39 +1215,18 @@
 %% NUMBERING -- for numbering of multichoice questions
 \@@_generate_write_data:nnn{answer_numbering}{answernumbering}{\l_@@_numbering_tl}%
       
-\def\@moodle@alpha{alpha}%
-\def\@moodle@Alpha{Alpha}%
-\def\@moodle@alph{alph}%
-\def\@moodle@Alph{Alph}%
-\def\@moodle@arabic{arabic}%
-\def\@moodle@roman{roman}%
-\def\@moodle@Roman{Roman}%
-\def\@moodle@abc{abc}%
-\def\@moodle@ABC{ABC}%
-\def\@moodle@arabicnumbers{123}%
-\def\@moodle@iii{iii}%
-\def\@moodle@IIII{IIII}%
-\def\@moodle@none{none}%
-\def\moodle@obeynumberingstyle{%
-  \ifx\l_@@_numbering_tl\@moodle@abc
-    \renewcommand\theenumii{\alph{enumii}}%
-  \fi
-  \ifx\l_@@_numbering_tl\@moodle@ABC
-    \renewcommand\theenumii{\Alph{enumii}}%
-  \fi
-  \ifx\l_@@_numbering_tl\@moodle@arabicnumbers
-    \renewcommand\theenumii{\arabic{enumii}}%
-  \fi
-  \ifx\l_@@_numbering_tl\@moodle@iii
-    \renewcommand\theenumii{\roman{enumii}}%
-  \fi
-  \ifx\l_@@_numbering_tl\@moodle@IIII
-    \renewcommand\theenumii{\Roman{enumii}}%
-  \fi
-  \ifx\l_@@_numbering_tl\@moodle@none
-    \renewcommand\labelenumii{$\bullet$~}%
-  \fi
-}
+\cs_new:Npn\@@_obey_numbering_style:{
+  \str_case:nnTF\l_@@_numbering_tl
+    {
+      {abc}{renewcommand\theenumii{\alph{enumii}}}
+      {ABC}{renewcommand\theenumii{\Alph{enumii}}}
+      {123}{renewcommand\theenumii{\arabic{enumii}}}
+      {iii}{renewcommand\theenumii{\roman{enumii}}}
+      {IIII}{renewcommand\theenumii{\Roman{enumii}}}
+    }
+    {}
+    {\renewcommand\labelenumii{$\bullet$~}}}
+
 %TO DO: * In the PDF, how should 'none' in a multi look different from
 %         short answer or numerical options?
 %       * Instead of \theenumi and \labelenumi,
@@ -1211,7 +1269,11 @@
   units~left .initial:n = false,
 
   %% UNITS
-  units .code:n = \keyval_parse:NNn\def_unit:n\def_unit:nn{#1}
+  units .code:n = \keyval_parse:NNn\def_unit:n\def_unit:nn{#1},
+  
+  %% distributions
+  distributions .clist_set:N = \l_@@_distributions_clist,
+  distributions .initial:n = {}
 }
 
 %There is no \moodle@writetolerance, because in the XML the
@@ -1237,16 +1299,16 @@
 \def\def_unit:n#1{\prop_put:Nnn\l_@@_units_prop{#1}{1}}%
 
 \cs_new:Npn\@@_write_unit:xx#1#2{%
-  \@@_write_begin:x{<unit>}
-    \@@_write:x{<unit_name>#1</unit_name>}
-    \@@_write:x{<multiplier>\ifblank{#2}{1}{#2}</multiplier>}
-  \@@_write_end:x{</unit>}}%
+  \@@_write_begin:n{<unit>}
+    \@@_write:n{<unit_name>#1</unit_name>}
+    \@@_write:n{<multiplier>\ifblank{#2}{1}{#2}</multiplier>}
+  \@@_write_end:n{</unit>}}%
 
 \cs_new:Npn\@@_write_units:{
   \prop_if_empty:NTF\l_@@_units_prop{}{
-    \@@_write_begin:x{<units>}
+    \@@_write_begin:n{<units>}
       \prop_map_function:NN\l_@@_units_prop\@@_write_unit:xx
-    \@@_write_end:x{</units>}
+    \@@_write_end:n{</units>}
   }
 }
 
@@ -1369,16 +1431,32 @@
 %% SHOW NUM CORRECT
 \cs_new:Npn\@@_write_show_num_correct:{
   \bool_if:NTF\l_@@_show_num_correct_bool
-    {\@@_write:x{<shownumcorrect/>}}
+    {\@@_write:n{<shownumcorrect/>}}
     {}
 }
 
 %% CLEAR WRONG
 \cs_new:Npn\@@_write_clear_wrong:{
   \bool_if:NTF\l_@@_clear_wrong_bool
-    {\@@_write:x{<clearwrong/>}}
+    {\@@_write:n{<clearwrong/>}}
     {}
 }
+
+% KEYS for calculated
+
+\keys_define:nn{moodle}{
+  dataset .code:n = {},
+  
+  datasets 
+
+  %% synchronize
+  synchronize .bool_set:N = \l_@@_synchronize_bool,
+  synchronize .default:n = true,
+  synchronize .initial:n = false
+}
+
+%% synchronize
+\@@_generate_write_data:nnn{synchronize}{synchronize}{\bool_if:NTF\l_@@_synchronize_bool{1}{0}}
 
 %% Process options now allowing any key to specified at the package level.
 \ProcessKeysPackageOptions{moodle}
@@ -1572,26 +1650,26 @@
   \item #1}
 
 \cs_new:Npn\@@_write_essay_question:{
-  \@@_write_begin:x{<question~type="essay">}
+  \@@_write_begin:n{<question~type="essay">}
     \@@_write_common_data:
     \@@_write_response_required:
     \@@_write_response_format:
     \@@_write_response_field_lines:
     \@@_write_attachments_allowed:
     \@@_write_attachments_required:
-    \@@_write_begin:x{<graderinfo~format="html">}
-      \@@_write_begin:x{<text><![CDATA[<ul>}
+    \@@_write_begin:n{<graderinfo~format="html">}
+      \@@_write_begin:n{<text><![CDATA[<ul>}
         \@@_map_answers:xx{write}{essay} % The 'answers' XML really contains the grader info.
-      \@@_write_end:x{</ul>]]></text>}
-    \@@_write_end:x{</graderinfo>}
+      \@@_write_end:n{</ul>]]></text>}
+    \@@_write_end:n{</graderinfo>}
     \@@_write_response_template:
-  \@@_write_end:x{</question>}
-  \@@_write:x{ }
+  \@@_write_end:n{</question>}
+  \@@_write:n{ }
 }
 
 \cs_new:Npn\@@_write_essay_answer:x#1{
   \xa\converttohtmlmacro\xa\moodle@answertext@html\xa{#1}%
-  \@@_write:x{<li>\moodle@answertext@html</li>}}
+  \@@_write:n{<li>\moodle@answertext@html</li>}}
 
 %    \end{macrocode}
 %
@@ -1630,24 +1708,24 @@
   \item[Hint:]~#1}
 
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
-  \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
-    \@@_write:x{<text>\trim@spaces{#1}</text>}
+  \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
+    \@@_write_plain_text:n{#1}
     \@@_write_feedback:
-  \@@_write_end:x{</answer>}}
+  \@@_write_end:n{</answer>}}
 
 \cs_new:Npn\@@_write_shortanswer_hint:x#1{
-  \@@_write_begin:x{<hint~format="html">}
+  \@@_write_begin:n{<hint~format="html">}
     \@@_write_html:n{#1}
-  \@@_write_end:x{</hint>}}
+  \@@_write_end:n{</hint>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_shortanswer_question:{
-  \@@_write_begin:x{<question~type="shortanswer">}
+  \@@_write_begin:n{<question~type="shortanswer">}
     \@@_write_common_data:
     \@@_write_use_case:
     \@@_map_answers:xx{write}{shortanswer}
-  \@@_write_end:x{</question>}
-  \@@_write:x{ }}
+  \@@_write_end:n{</question>}
+  \@@_write:n{ }}
 %    \end{macrocode}
 %
 % \subsubsection{Numerical Question Front-End}
@@ -1678,24 +1756,32 @@
       {\quad\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
 
 \cs_new:Npn\@@_write_numerical_answer:x#1{
-  \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
-    \@@_write:x{<text>#1</text>}
-    \@@_write:x{<tolerance>\fp_to_tl:N\l_@@_tolerance_fp</tolerance>}
+  \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
+    \@@_write_plain_text:n{#1}
+    \@@_write:n{<tolerance>\fp_to_tl:N\l_@@_tolerance_fp</tolerance>}
     \@@_write_feedback:
-  \@@_write_end:x{</answer>}}
+  \@@_write_end:n{</answer>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_numerical_question:{
-  \@@_write_begin:x{<question~type="numerical">}
+  \@@_write_begin:n{<question~type="\@@_if_calculated:TF{calculated}{numerical}">}
     \@@_write_common_data:
+    \@@_if_calculated:TF
+      {}
+      {
+        \@@_write_synchronize:
+        \@@_write_begin:n{<dataset_definitions>}
+          \clist_map_function:NN\l_@@_distributions_clist\@@_write_dataset:n
+        \@@_write_end:n{</dataset_definitions>}
+      }
     \@@_write_show_units:
     \@@_write_unit_grading_type:
     \@@_write_unit_penalty:
     \@@_write_units_left:
     \@@_write_units:
     \@@_map_answers:xx{write}{numerical}
-  \@@_write_end:x{</question>}
-  \@@_write:x{ }
+  \@@_write_end:n{</question>}
+  \@@_write:n{ }
 }%
 %    \end{macrocode}
 %
@@ -1717,7 +1803,7 @@
   \begin{enumerate}
     \setlength\itemsep{0pt}
     \setlength\parskip{0pt}
-    \moodle@obeynumberingstyle
+    \@@_obey_numbering_style:
     \@@_map_answers:xx{print}{multi}
   \end{enumerate}
 }
@@ -1802,21 +1888,21 @@
   \fi}
 
 \cs_new:Npn\@@_write_multi_answer:x#1{
-  \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="html">}
+  \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="html">}
     \@@_write_html:o{#1}
     \@@_write_feedback:
-  \@@_write_end:x{</answer>}}
+  \@@_write_end:n{</answer>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_multi_question:{
-  \@@_write_begin:x{<question~type="multichoice">}%
+  \@@_write_begin:n{<question~type="multichoice">}%
     \@@_write_common_data:%
     \@@_write_single:%
     \@@_write_shuffle:%
     \@@_write_answer_numbering:%
     \@@_map_answers:xx{write}{multi}
-  \@@_write_end:x{</question>}
-  \@@_write:x{ }
+  \@@_write_end:n{</question>}
+  \@@_write:n{ }
 }%
 %    \end{macrocode}
 %
@@ -1833,7 +1919,7 @@
     \renewcommand{\theenumi}{\alph{enumi}}
     \setlength\itemsep{0pt}
     \setlength\parskip{0pt}
-    \moodle@obeynumberingstyle
+    \@@_obey_numbering_style:
     \@@_map_answers:xx{print}{matching}
   \end{enumerate}
 }
@@ -1845,32 +1931,32 @@
   \@@_write_matching_answer_split#1\l_@@_answer_delim}
 
 \def\@@_write_matching_answer_split#1\answer#2\l_@@_answer_delim{
-  \@@_write_begin:x{<subquestion~format="html">}
+  \@@_write_begin:n{<subquestion~format="html">}
     \@@_write_html:o{#1}
     \bool_if:NTF\l_@@_drag_and_drop_bool
       {
-       \@@_write_begin:x{<answer~format="html">}
+       \@@_write_begin:n{<answer~format="html">}
           \@@_write_html:o{#2}
-        \@@_write_end:x{</answer>}
+        \@@_write_end:n{</answer>}
       }{
-        \@@_write_begin:x{<answer>}
-          \@@_write:x{<text>#2</text>}
-        \@@_write_end:x{</answer>}
+        \@@_write_begin:n{<answer>}
+          \@@_write:n{<text>#2</text>}
+        \@@_write_end:n{</answer>}
       }
     \@@_write_feedback:
-  \@@_write_end:x{</subquestion>}}
+  \@@_write_end:n{</subquestion>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_matching_question:{
   %
-  \@@_write_begin:x{<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}
+  \@@_write_begin:n{<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}
     \@@_write_common_data:%
     \@@_write_single:
     \@@_write_shuffle:
     \@@_write_answer_numbering:%
     \@@_map_answers:xx{write}{matching}
-  \@@_write_end:x{</question>}
-  \@@_write:x{ }
+  \@@_write_end:n{</question>}
+  \@@_write:n{ }
 %  \gdef\moodle@answ
 }%
 %    \end{macrocode}
@@ -1913,10 +1999,10 @@
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_cloze_question:{
-  \@@_write_begin:x{<question~type="cloze">}%
+  \@@_write_begin:n{<question~type="cloze">}%
     \@@_write_common_data:
-  \@@_write_end:x{</question>}
-  \@@_write:x{ }
+  \@@_write_end:n{</question>}
+  \@@_write:n{ }
 }%
 %    \end{macrocode}
 %

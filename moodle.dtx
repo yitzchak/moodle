@@ -1317,7 +1317,7 @@
   datasets .initial:n = {},
   
   %% dataset
-  dataset .code:n = {\clist_put_right:Nn\l_@@_datasets_clist{#1}},
+  dataset .code:n = {\clist_put_right:Nn\l_@@_datasets_clist{{#1}}},
 
   %% synchronize
   synchronize .bool_set:N = \l_@@_synchronize_bool,
@@ -1760,14 +1760,14 @@
       {\item[\quad\(\fp_to_decimal:N\l_@@_fraction_fp\%\)]}}
   #1}
 
-\cs_new:Npn\@@_print_shortanswer_hint:x#1{
-  \item[Hint:]~#1}
-
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
   \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write_plain_text:n{#1}
     \@@_write_feedback:
   \@@_write_end:n{</answer>}}
+
+\cs_new:Npn\@@_print_shortanswer_hint:x#1{
+  \item[Hint:]~#1}
 
 \cs_new:Npn\@@_write_shortanswer_hint:x#1{
   \@@_write_begin:n{<hint~format="html">}
@@ -1825,6 +1825,14 @@
     \@@_write_feedback:
   \@@_write_end:n{</answer>}}
 
+\cs_new:Npn\@@_print_numerical_hint:x#1{
+  \item[Hint:]~#1}
+
+\cs_new:Npn\@@_write_numerical_hint:x#1{
+  \@@_write_begin:n{<hint~format="html">}
+    \@@_write_html:n{#1}
+  \@@_write_end:n{</hint>}}
+
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_numerical_question:{
   \@@_write_begin:n{<question~type="\@@_if_calculated:TF{calculated}{numerical}">}
@@ -1878,6 +1886,16 @@
     {\fp_compare:nNnTF\l_@@_fraction_fp={100}
       {\quad\(\checkmark\)}
       {\quad\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
+
+\cs_new:Npn\@@_print_multi_hint:x#1{
+  \item[Hint:]~#1}
+
+\cs_new:Npn\@@_write_multi_hint:x#1{
+  \@@_write_begin:n{<hint~format="html">}
+    \@@_write_html:n{#1}
+    \@@_write_clear_wrong:
+    \@@_write_show_num_correct:
+  \@@_write_end:n{</hint>}}
 
 % COMMON UTILITY: COUNTING CORRECT ANSWERS
    \newcounter{moodle@numcorrectanswers}%
@@ -1953,13 +1971,27 @@
 \cs_new:Npn\@@_write_multi_answer:x#1{
   \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="html">}
     \@@_write_html:o{#1}
+    \@@_if_calculated:TF
+      {
+        \@@_write_display_format:
+        \@@_write_display_digits:
+      }
+      {}
     \@@_write_feedback:
   \@@_write_end:n{</answer>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_multi_question:{
-  \@@_write_begin:n{<question~type="multichoice">}%
+  \@@_write_begin:n{<question~type="\@@_if_calculated:TF{calculatedmult}{multichoice}">}%
     \@@_write_common_data:%
+    \@@_if_calculated:TF
+      {
+        \@@_write_synchronize:
+        \@@_write_begin:n{<dataset_definitions>}
+          \clist_map_function:NN\l_@@_datasets_clist\@@_write_dataset:n
+        \@@_write_end:n{</dataset_definitions>}
+      }
+      {}
     \@@_write_single:%
     \@@_write_shuffle:%
     \@@_write_answer_numbering:%

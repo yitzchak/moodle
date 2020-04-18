@@ -825,15 +825,19 @@
     \int_step_function:nN\g_@@_xml_indent_int\g_@@_indent_str
     #1}}
 
-\cs_generate_variant:Nn\@@_write:n{x}
+\cs_generate_variant:Nn \@@_write:n { x }
 
-\cs_new:Npn\@@_write_begin:n#1{
+\cs_new:Npn\@@_write_begin:n #1 {
   \@@_write:n{#1}
   \@@_incr_indent:}
+  
+\cs_generate_variant:Nn \@@_write_begin:n { x }
 
 \cs_new:Npn\@@_write_end:n#1{
   \@@_decr_indent:
   \@@_write:n{#1}}
+
+\cs_generate_variant:Nn \@@_write_end:n { x }
 
 %    \end{macrocode}
 % We now create the main |quiz| environment that will contain
@@ -1029,7 +1033,7 @@
     {\@@_write:n{<text/>}}
     {\@@_write:n{<text>\l_@@_text_tl</text>}}}
 
-\cs_generate_variant:Nn \@@_write_plain_text:n { o, v }
+\cs_generate_variant:Nn \@@_write_plain_text:n { o, x }
 
 \cs_new:Npn\@@_write_html:n#1{
   \tl_set:Nn\l_@@_text_tl{#1}
@@ -1072,7 +1076,7 @@
   % #2 = HTML tag
   % #3 = what, exactly, to write
   \cs_new:cpn{@@_write_#1:}{
-    \@@_write:n{<#2>#3</#2>}
+    \@@_write:x{<#2>#3</#2>}
   }
 }
 
@@ -1180,7 +1184,7 @@
 \keys_define:nn{moodle}{
   %% TYPE
   type .choices:nn =
-    {answer, hint, grader~info}
+    {answer, hint, grader~info, response~template}
     {\str_set:Nx \l_@@_type_str \l_keys_choice_tl},
 
   %% FRACTION
@@ -1448,10 +1452,6 @@
   attachments~required .int_set:N = \l_@@_attachments_required_int,
   attachments~required .default:n = 1,
   attachments~required .initial:n = 0,
-
-  %% RESPONSE TEMPLATE
-  template .tl_set:N = \l_@@_response_template_tl,
-  template .initial:n =
 }
 
 %% EDITOR
@@ -1479,9 +1479,6 @@
 \@@_generate_write_data:nnn
   {attachments_required}{attachmentsrequired}
   {\int_to_arabic:n\l_@@_attachments_required_int}
-
-%% RESPONSE TEMPLATE
-\@@_generate_write_html:nnn{response_template}{responsetemplate}{\l_@@_response_template_tl}
 
 %    \end{macrocode}
 % \subsubsection{Hint tags}
@@ -1545,12 +1542,12 @@
   \@@_apply_answer_text{#1}{#2}
 }
 
-\def\@@_apply_answer_text#1#2#3\l_@@_answer_delim{
+\long\def\@@_apply_answer_text#1#2#3\l_@@_answer_delim{
   \csname @@_#1_#2_\l_@@_type_str :x\endcsname{#3}}
 
 \cs_new:Npn\@@_map_answers:xx#1#2{
   \bgroup
-    \def\doitem##1{\@@_apply_answer:xxx{#1}{#2}{##1}}
+    \long\def\doitem##1{\@@_apply_answer:xxx{#1}{#2}{##1}}
     \loopthroughitemswithcommand{\doitem}
   \egroup}
 
@@ -1693,14 +1690,29 @@
 
 \cs_new:Npn\@@_print_essay_question:{
   \ifnum\c@numgathereditems>0\relax
-    \par\noindent Grader~Notes:
-    \begin{itemize}
+    \begin{description}
       \setlength\itemsep{0pt}
       \setlength\parskip{0pt}
       \@@_map_answers:xx{print}{essay}
-    \end{itemize}
+    \end{description}
   \fi
 }
+
+\cs_new:cpn{@@_print_essay_response~template:x}#1{
+  \item[Response Template]~#1}
+
+\cs_new:cpn{@@_write_essay_response~template:x}#1{
+  \@@_write_begin:n{<responsetemplate~format="html">}
+    \@@_write_html:n{#1}
+  \@@_write_end:n{</responsetemplate>}}
+
+\cs_new:cpn{@@_print_essay_grader~info:x}#1{
+  \item[Grader Info]~#1}
+
+\cs_new:cpn{@@_write_essay_grader~info:x}#1{
+  \@@_write_begin:n{<graderinfo~format="html">}
+    \@@_write_html:n{#1}
+  \@@_write_end:n{</graderinfo>}}
 
 \cs_new:Npn\@@_print_essay_answer:x#1{
   \item #1}
@@ -1713,12 +1725,7 @@
     \@@_write_response_field_lines:
     \@@_write_attachments_allowed:
     \@@_write_attachments_required:
-    \@@_write_begin:n{<graderinfo~format="html">}
-      \@@_write_begin:n{<text><![CDATA[<ul>}
-        \@@_map_answers:xx{write}{essay} % The 'answers' XML really contains the grader info.
-      \@@_write_end:n{</ul>]]></text>}
-    \@@_write_end:n{</graderinfo>}
-    \@@_write_response_template:
+    \@@_map_answers:xx{write}{essay}
   \@@_write_end:n{</question>}
   \@@_write:n{ }
 }
@@ -1762,7 +1769,7 @@
 
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
   \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
-    \@@_write_plain_text:n{#1}
+    \@@_write_plain_text:x{#1}
     \@@_write_feedback:
   \@@_write_end:n{</answer>}}
 
@@ -1813,7 +1820,7 @@
 
 \cs_new:Npn\@@_write_numerical_answer:x#1{
   \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
-    \@@_write_plain_text:n{#1}
+    \@@_write_plain_text:x{#1}
     \@@_write_tolerance:
     \@@_if_calculated:TF
       {
@@ -2018,6 +2025,10 @@
     \@@_map_answers:xx{print}{matching}
   \end{enumerate}
 }
+
+\cs_new_eq:NN \@@_print_matching_hint:x \@@_print_multi_hint:x
+
+\cs_new_eq:NN \@@_write_matching_hint:x \@@_write_multi_hint:x
 
 \cs_new:Npn\@@_print_matching_answer:x#1{
   \item #1}

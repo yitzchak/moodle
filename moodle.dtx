@@ -1202,8 +1202,8 @@
 \keys_define:nn{moodle}{
   %% TYPE
   type .choices:nn =
-    {answer, hint}
-    {\str_set:Nx \l_@@_type_str \l_keys_choice_tl},
+    {answer, hint, grader_info, question, response_template}
+    {\tl_set:Nx \l_@@_type_tl \l_keys_choice_tl},
 
   %% FRACTION
   fraction .fp_set:N = \l_@@_fraction_fp,
@@ -1562,28 +1562,28 @@
 %is invoked.
 
 % WRITING/PRINTING ANSWERS
-\cs_new:Npn\@@_apply_answer:xxx#1#2#3{%
-  \bgroup
-    \@@_apply_answer_opt{#1}{#2}#3\l_@@_answer_delim
-  \egroup
-}%
+% \cs_new:Npn\@@_apply_answer:xxx#1#2#3{%
+%   \bgroup
+%     \@@_apply_answer_opt{#1}{#2}#3\l_@@_answer_delim
+%   \egroup
+% }%
 
-\NewDocumentCommand \@@_apply_answer_opt { m m s O{} } {
-  \IfBooleanTF{#3}
-    {\moodleset{fraction=100}}
-    {\moodleset{fraction=0}}
-  \moodleset{feedback=,type=answer,#4}
-  \@@_apply_answer_text{#1}{#2}
-}
+% \NewDocumentCommand \@@_apply_answer_opt { m m s O{} } {
+%   \IfBooleanTF{#3}
+%     {\moodleset{fraction=100}}
+%     {\moodleset{fraction=0}}
+%   \moodleset{feedback=,type=answer,#4}
+%   \@@_apply_answer_text{#1}{#2}
+% }
 
-\long\def\@@_apply_answer_text#1#2#3\l_@@_answer_delim{
-  \csname @@_#1_#2_\l_@@_type_str :x\endcsname{#3}}
+% \long\def\@@_apply_answer_text#1#2#3\l_@@_answer_delim{
+%   \csname @@_#1_#2_answer :x\endcsname{#3}}
 
-\cs_new:Npn\@@_map_answers:xx#1#2{
-  \bgroup
-    \long\def\doitem##1{\@@_apply_answer:xxx{#1}{#2}{##1}}
-    \loopthroughitemswithcommand{\doitem}
-  \egroup}
+% \cs_new:Npn\@@_map_answers:xx#1#2{
+%   \bgroup
+%     \long\def\doitem##1{\@@_apply_answer:xxx{#1}{#2}{##1}}
+%     \seq_map_function:NN \l_@@_answer_seq \doitem
+%   \egroup}
 
 %    \end{macrocode}
 %
@@ -1632,7 +1632,7 @@
 % For example, to create the `shortanswer' question type,
 % we shall call 
 % \begin{Verbatim}[gobble=5,frame=single]
-%    \@@_make_frontend{shortanswer}
+%    \@@_make_frontend:n{shortanswer}
 %    \def\moodle@shortanswer@latexprocessing{...}
 %    \def\saveshortansweranswer#1{...}
 %    \def\writeshortanswerquestion{...}
@@ -1672,47 +1672,164 @@
   \fi
 }
 
-\int_new:N\g_@@_name_count_int
+\tl_gset:Nn \g_@@_split_tl { \answer \graderinfo \hint \question \responsetemplate \@@_terminator: }
 
-\cs_new:Npn\@@_make_frontend#1{%
-  \NewEnviron{#1}[1][]{
-    \bgroup
-      \def\endclozemulti@code{}
-      \moodleset{##1}
-      \expandafter\gatheritems\xa{\BODY}
-      \tl_set_eq:NN\l_@@_question_text_tl\gatheredheader
-      \bool_if:NTF\l_@@_in_cloze_bool{}{
-        \tl_if_empty:NTF\l_@@_name_tl
-          {
-            \int_incr:N\g_@@_name_count_int
-            \tl_set:Nx\l_@@_name_tl{question-\int_to_arabic:n\g_@@_name_count_int}}
-          {}}
-      \ifhtmlizer@active
-        %HTML version
-        \edef\l_@@_cloze_text_tl{
+\cs_new:Npn \@@_terminator: {}
+
+\cs_new:Npn \@@_item:n #1
+  {
+    \tl_if_in:NnTF \g_@@_split_tl { #1 }
+      {
+        \tl_trim_spaces:N \l_@@_item_tl
+        \seq_put_right:No \l_@@_item_seq \l_@@_item_tl
+        \tl_clear:N \l_@@_item_tl
+        #1
+      }
+      {
+        \tl_put_right:Nn \l_@@_item_tl { #1 }
+        \@@_item:n
+      }
+  }
+
+\NewDocumentCommand \answer { s O{} }
+  {
+    \int_incr:N \l_@@_answer_count_int
+    \IfBooleanTF {#1}
+      { \seq_put_right:Nn \l_@@_option_seq { type=answer, fraction=100, #2 } }
+      { \seq_put_right:Nn \l_@@_option_seq { type=answer, #2 } }
+    \@@_item:n
+  }
+
+\NewDocumentCommand \question { O{} }
+  {
+    \int_incr:N \l_@@_question_count_int
+    \seq_put_right:Nn \l_@@_option_seq { type=question, #1 }
+    \@@_item:n
+  }
+
+\NewDocumentCommand \hint { O{} }
+  {
+    \int_incr:N \l_@@_hint_count_int
+    \seq_put_right:Nn \l_@@_option_seq { type=hint, #1 }
+    \@@_item:n
+  }
+
+\NewDocumentCommand \graderinfo { O{} }
+  {
+    \int_incr:N \l_@@_grader_info_count_int
+    \seq_put_right:Nn \l_@@_option_seq { type=grader_info, #1 }
+    \@@_item:n
+  }
+
+\NewDocumentCommand \responsetemplate { O{} }
+  {
+    \int_incr:N \l_@@_response_template_count_int
+    \seq_put_right:Nn \l_@@_option_seq { type=response_template, #1 }
+    \@@_item:n
+  }
+
+\cs_new:Nn \@@_use_items:n {
+  \clist_set:Nn \l_@@_type_clist {#1}
+
+  \cs_set:Nn \@@_doitem:nn
+    {
+      \group_begin:
+        \moodleset {##1}
+        \clist_if_in:NoTF \l_@@_type_clist \l_@@_type_tl
+          { ##2 }
+          { }
+      \group_end:
+    }
+
+  \seq_mapthread_function:NNN \l_@@_option_seq \l_@@_item_seq \@@_doitem:nn
+}
+
+\cs_new:Nn \@@_map_items_inline:nn {
+  \clist_set:Nn \l_@@_type_clist {#1}
+  \cs_set:Nn \@@_apply:n {#2}
+
+  \cs_set:Nn \@@_doitem:nn
+    {
+      \group_begin:
+        \moodleset {##1}
+        \clist_if_in:NoTF \l_@@_type_clist \l_@@_type_tl
+          { \@@_apply:n {##2} }
+          { }
+      \group_end:
+    }
+
+  \seq_mapthread_function:NNN \l_@@_option_seq \l_@@_item_seq \@@_doitem:nn
+}
+
+\cs_new:Nn \@@_map_items:nnn {
+  \clist_set:Nn \l_@@_type_clist {#3}
+
+  \cs_set:Nn \@@_doitem:nn
+    {
+      \group_begin:
+        \moodleset {##1}
+        \clist_if_in:NoTF \l_@@_type_clist \l_@@_type_tl
+          { \use:c {@@_#1_#2_ \l_@@_type_tl :x} {##2} }
+          { }
+      \group_end:
+    }
+
+  \seq_mapthread_function:NNN \l_@@_option_seq \l_@@_item_seq \@@_doitem:nn
+}
+
+\cs_new:Nn \@@_make_frontend:n {
+  \NewDocumentEnvironment {#1} { O{} +b }
+    {
+      \bgroup
+        \def\endclozemulti@code{}
+        \moodleset{##1}
+        \int_zero_new:N \l_@@_answer_count_int
+        \int_zero_new:N \l_@@_hint_count_int
+        \int_zero_new:N \l_@@_grader_info_count_int
+        \int_zero_new:N \l_@@_response_template_count_int
+        \int_zero_new:N \l_@@_question_count_int
+        \tl_clear_new:N \l_@@_item_tl
+        \tl_set:Nn \l_@@_body_tl {##2}
+        \tl_replace_all:Nnn \l_@@_body_tl {~} {{~}}
+        \seq_clear_new:N \l_@@_option_seq
+        \seq_clear_new:N \l_@@_item_seq
+        \expandafter \@@_item:n \l_@@_body_tl \@@_terminator:
+        \seq_pop_left:NN \l_@@_item_seq \l_@@_question_text_tl
+        \bool_if:NTF\l_@@_in_cloze_bool{}{
+          \tl_if_empty:NTF\l_@@_name_tl
+            {
+              \int_incr:N\g_@@_name_count_int
+              \tl_set:Nx\l_@@_name_tl{question-\int_to_arabic:n\g_@@_name_count_int}}
+            {}}
+        \ifhtmlizer@active
+          %HTML version
+          \edef\l_@@_cloze_text_tl{
+            \l_@@_question_text_tl
+            \{\fp_to_decimal:N\l_@@_default_grade_fp :
+            \csname @@_cloze_#1_tag:\endcsname :}
+          \loopthroughitemswithcommand{\@@_cloze_answer:x}%
+          \tl_put_right:Nn\l_@@_cloze_text_tl{\}}
+          \xa\gdef\xa\htmlize@afteraction@hook\xa{\l_@@_cloze_text_tl}%
+          \def\endclozemulti@code{\htmlize@patchendenvironment}%
+        \else
+          %First, the LaTeX processing
+          \bool_if:NTF\l_@@_in_cloze_bool{}{
+            \item \textbf{\l_@@_name_tl}\par\noindent}
           \l_@@_question_text_tl
-          \{\fp_to_decimal:N\l_@@_default_grade_fp :
-          \csname @@_cloze_#1_tag:\endcsname :}
-        \loopthroughitemswithcommand{\@@_cloze_answer:x}%
-        \tl_put_right:Nn\l_@@_cloze_text_tl{\}}
-        \xa\gdef\xa\htmlize@afteraction@hook\xa{\l_@@_cloze_text_tl}%
-        \def\endclozemulti@code{\htmlize@patchendenvironment}%
-      \else
-        %First, the LaTeX processing
-        \bool_if:NTF\l_@@_in_cloze_bool{}{
-          \item \textbf{\l_@@_name_tl}\par\noindent}
-        \l_@@_question_text_tl
-        \csname @@_print_#1_question:\endcsname
-        \bool_if:NTF\l_@@_in_cloze_bool{}{
-          %Now, writing information to XML
-          \@@_if_generate_xml:T{%
-            \csname @@_write_#1_question:\endcsname
-          }}
-      \fi
-      \passvalueaftergroup\endclozemulti@code%
-      \passvalueaftergroup\htmlize@afteraction@hook%
-    \egroup
-  }[\endclozemulti@code]
+          \csname @@_print_#1_question:\endcsname
+          \bool_if:NTF\l_@@_in_cloze_bool{}{
+            %Now, writing information to XML
+            \@@_if_generate_xml:T{%
+              \csname @@_write_#1_question:\endcsname
+            }}
+        \fi
+        \passvalueaftergroup\endclozemulti@code%
+        \passvalueaftergroup\htmlize@afteraction@hook%
+      \egroup
+    }
+    {
+      \endclozemulti@code
+    }
 }
 
 %    \end{macrocode}
@@ -1720,17 +1837,39 @@
 % \subsubsection{Essay Question Front-End}
 % 
 %    \begin{macrocode}
-\@@_make_frontend{essay}
+\@@_make_frontend:n{essay}
 
 \cs_new:Npn\@@_print_essay_question:{
-  \ifnum\c@numgathereditems>0\relax
-    \begin{description}
-      \setlength\itemsep{0pt}
-      \setlength\parskip{0pt}
-      \@@_map_answers:xx{print}{essay}
-    \end{description}
-  \fi
+  \int_compare:nNnTF \c_zero_int = \l_@@_response_template_count_int
+    {}
+    {
+      \textbf{Response Template}
+      \@@_use_items:n{response_template}
+    }
+
+  \int_compare:nNnTF \c_zero_int = \l_@@_grader_info_count_int
+    {}
+    {
+      \textbf{Grader Info}
+      \@@_use_items:n{grader_info}
+    }
 }
+
+\cs_new:Npn \@@_print_essay_response_template:x #1{
+  \item~#1}
+
+\cs_new:Npn \@@_write_essay_response_template:x #1{
+  \@@_write_begin:n{<responsetemplate~format="html">}
+    \@@_write_html:n{#1}
+  \@@_write_end:n{</responsetemplate>}}
+
+\cs_new:Npn \@@_print_essay_grader_info:x #1{
+  \item #1}
+
+\cs_new:Npn \@@_write_essay_grader_info:x #1{
+  \@@_write_begin:n{<graderinfo~format="html">}
+    \@@_write_html:n{#1}
+  \@@_write_end:n{</graderinfo>}}
 
 \cs_new:Npn\@@_print_essay_answer:x#1{
   \item #1}
@@ -1745,7 +1884,7 @@
     \@@_write_grader_info:
     \@@_write_attachments_allowed:
     \@@_write_attachments_required:
-    \@@_map_answers:xx{write}{essay}
+    \@@_map_items:nnn{write}{essay}{grader_info,response_template}
   \@@_write_end:n{</question>}
   \@@_write:n{ }
 }
@@ -1763,15 +1902,26 @@
 % TO DO: Make an optional argument for width?  This wouldn't affect Moodle,
 %        only the appearance in the PDF.  It doesn't seem worth it.
 
-\@@_make_frontend{shortanswer}
+\@@_make_frontend:n{shortanswer}
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_shortanswer_question:{
   \begin{itemize}
     \setlength\itemsep{0pt}
     \setlength\parskip{0pt}
-    \@@_map_answers:xx{print}{shortanswer}
+    \@@_map_items:nnn{print}{shortanswer}{answer}
   \end{itemize}
+
+  \int_compare:nNnTF \c_zero_int = \l_@@_hint_count_int
+    {}
+    {
+      \textbf{Hints}
+      \begin{itemize}
+        \setlength\itemsep{0pt}
+        \setlength\parskip{0pt}
+        \@@_map_items:nnn{print}{shortanswer}{hint}
+      \end{itemize}
+    }
 }
 
 \cs_new:Npn\@@_cloze_shortanswer_tag:{
@@ -1787,14 +1937,14 @@
       {\item[\quad\(\fp_to_decimal:N\l_@@_fraction_fp\%\)]}}
   #1}
 
-\cs_new:Npn\@@_write_shortanswer_answer:x#1{
+\cs_new:Npn\@@_write_shortanswer_answer:x #1 {
   \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write_plain_text:x{#1}
     \@@_write_feedback:
   \@@_write_end:n{</answer>}}
 
 \cs_new:Npn\@@_print_shortanswer_hint:x#1{
-  \item[Hint:]~#1}
+  \item~#1}
 
 \cs_new:Npn\@@_write_shortanswer_hint:x#1{
   \@@_write_begin:n{<hint~format="html">}
@@ -1806,7 +1956,7 @@
   \@@_write_begin:n{<question~type="shortanswer">}
     \@@_write_common_data:
     \@@_write_use_case:
-    \@@_map_answers:xx{write}{shortanswer}
+    \@@_map_items:nnn{write}{shortanswer}{answer,hint}
   \@@_write_end:n{</question>}
   \@@_write:n{ }}
 %    \end{macrocode}
@@ -1814,14 +1964,14 @@
 % \subsubsection{Numerical Question Front-End}
 % 
 %    \begin{macrocode}
-\@@_make_frontend{numerical}%
+\@@_make_frontend:n{numerical}%
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_numerical_question:{
   \begin{itemize}
     \setlength\itemsep{0pt}
     \setlength\parskip{0pt}
-    \@@_map_answers:xx{print}{numerical}
+    \@@_map_items:nnn{print}{numerical}{answer}
   \end{itemize}
 }
 
@@ -1877,7 +2027,7 @@
     \@@_write_unit_penalty:
     \@@_write_units_left:
     \@@_write_units:
-    \@@_map_answers:xx{write}{numerical}
+    \@@_map_items:nnn{write}{numerical}{answer,hint}
   \@@_write_end:n{</question>}
   \@@_write:n{ }
 }%
@@ -1894,7 +2044,7 @@
 %   \item 11
 % \end{multi}%
 
-\@@_make_frontend{multi}
+\@@_make_frontend:n{multi}
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_multi_question:{
@@ -1902,7 +2052,7 @@
     \setlength\itemsep{0pt}
     \setlength\parskip{0pt}
     \@@_obey_numbering_style:
-    \@@_map_answers:xx{print}{multi}
+    \@@_map_items:nnn{print}{multi}{answer}
   \end{enumerate}
 }
 
@@ -2022,7 +2172,7 @@
     \@@_write_single:%
     \@@_write_shuffle:%
     \@@_write_answer_numbering:%
-    \@@_map_answers:xx{write}{multi}
+    \@@_map_items:nnn{write}{multi}{answer,hint}
   \@@_write_end:n{</question>}
   \@@_write:n{ }
 }%
@@ -2031,9 +2181,9 @@
 % \subsubsection{Matching Question Front-End}
 % 
 %    \begin{macrocode}
-\let\answer=\hfill
+%\let\answer=\hfill
 
-\@@_make_frontend{matching}
+\@@_make_frontend:n{matching}
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_matching_question:{
@@ -2042,7 +2192,7 @@
     \setlength\itemsep{0pt}
     \setlength\parskip{0pt}
     \@@_obey_numbering_style:
-    \@@_map_answers:xx{print}{matching}
+    \@@_map_items:nnn{print}{matching}{}
   \end{enumerate}
 }
 
@@ -2080,7 +2230,7 @@
     \@@_write_single:
     \@@_write_shuffle:
     \@@_write_answer_numbering:%
-    \@@_map_answers:xx{write}{matching}
+    \@@_map_items:nnn{write}{matching}{}
   \@@_write_end:n{</question>}
   \@@_write:n{ }
 %  \gdef\moodle@answ
@@ -2106,22 +2256,24 @@
 % LATEX PROCESSING
 % SAVING ANSWERS TO MEMORY
 
-\NewEnviron{cloze}[1][]{%
-  \bgroup
-    \bool_set_true:N\l_@@_in_cloze_bool
-    % A cloze question won't have any \item's in it, so we just use \BODY.
-    \tl_set_eq:NN\l_@@_question_text_tl\BODY
-    \moodleset{#1}%
-    %First, the LaTeX processing.
-    \item \textbf{\l_@@_name_tl}\par
-    \noindent
-    \l_@@_question_text_tl
-    %Now, writing information to memory.
-    \@@_if_generate_xml:T{%
-      \@@_write_cloze_question:
-    }%
-  \egroup%
-}
+\NewDocumentEnvironment {cloze} { O{} +b }
+  {
+    \bgroup
+      \bool_set_true:N\l_@@_in_cloze_bool
+      % A cloze question won't have any \item's in it, so we just use \BODY.
+      \tl_set:Nn\l_@@_question_text_tl{#2}
+      \moodleset{#1}%
+      %First, the LaTeX processing.
+      \item \textbf{\l_@@_name_tl}\par
+      \noindent
+      \l_@@_question_text_tl
+      %Now, writing information to memory.
+      \@@_if_generate_xml:T{%
+        \@@_write_cloze_question:
+      }%
+    \egroup%
+  }
+  {}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_cloze_question:{

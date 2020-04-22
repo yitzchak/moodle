@@ -793,49 +793,57 @@
 % we will be writing.
 %    \begin{macrocode}
 
-\cs_new:Npn\@@_incr_indent:{
-  \int_incr:N\g_@@_xml_indent_int}
+\cs_new:Nn \@@_write_header:
+  {
+    \int_gzero_new:N \g_@@_xml_indent_int
+    \iow_new:N \g_@@_xml_iow
+    \iow_open:Nn \g_@@_xml_iow \outputfilename
+    \@@_write:n {<?xml~version="1.0"~encoding="UTF-8"?>}
+    \@@_write_begin:n {<quiz>}
+      \@@_write:
+  }
 
-\cs_new:Npn\@@_decr_indent:{
-  \int_decr:N\g_@@_xml_indent_int}
+\cs_new:Nn \@@_write_footer:
+  {
+    \@@_write_end:n {</quiz>}
+    \iow_close:N \g_@@_xml_iow
+  }
 
-\cs_new:Npn\@@_write_header:{%
-  \int_gzero_new:N\g_@@_xml_indent_int{0}
-  \iow_new:N\g_@@_xml_iow
-  \iow_open:Nn\g_@@_xml_iow\outputfilename
-  \@@_write:n{<?xml~version="1.0"~encoding="UTF-8"?>}%
-  \@@_write_begin:n{<quiz>}%
-  \@@_write:n{ }%
-}%
-\cs_new:Npn\@@_write_footer:{%
-  \@@_decr_indent:
-  \@@_write_end:n{</quiz>}%
-  \iow_close:N\g_@@_xml_iow
-}%
 %    \end{macrocode}
 % Now the command |\writetomoodle|\oarg{n}\marg{stuff} adds the line 
 % ``\meta{stuff}'' to the XML file
 % preceded by an indent of \meta{n} spaces.
 % Note that this command |\edef|'s its second argument.
 %    \begin{macrocode}
-\cs_new:Npn\g_@@_indent_str#1{\otherspace\otherspace}
+\cs_new:Nn \@@_write:
+  {
+    \iow_now:Nx \g_@@_xml_iow {}
+  }
 
-\cs_new:Npn\@@_write:n#1{
-  \iow_now:Nx\g_@@_xml_iow{
-    \int_step_function:nN\g_@@_xml_indent_int\g_@@_indent_str
-    #1}}
+\cs_new:Nn \@@_write:n
+  {
+    \iow_now:Nx \g_@@_xml_iow
+      {
+        \int_step_inline:nn \g_@@_xml_indent_int {\otherspace\otherspace}
+        #1
+      }
+  }
 
 \cs_generate_variant:Nn \@@_write:n { x }
 
-\cs_new:Npn\@@_write_begin:n #1 {
-  \@@_write:n{#1}
-  \@@_incr_indent:}
+\cs_new:Nn \@@_write_begin:n
+  {
+    \@@_write:n {#1}
+    \int_incr:N \g_@@_xml_indent_int
+  }
   
 \cs_generate_variant:Nn \@@_write_begin:n { x }
 
-\cs_new:Npn\@@_write_end:n#1{
-  \@@_decr_indent:
-  \@@_write:n{#1}}
+\cs_new:Nn \@@_write_end:n
+  {
+    \int_decr:N \g_@@_xml_indent_int
+    \@@_write:n {#1}
+  }
 
 \cs_generate_variant:Nn \@@_write_end:n { x }
 
@@ -843,17 +851,23 @@
 % We now create the main |quiz| environment that will contain
 % the questions we write.  It outputs to XML as a |<question~type="category">| tag.
 %    \begin{macrocode}
-\newenvironment{quiz}[1][]%
-  {\moodleset{#1}%
-   \@@_if_generate_xml:T{%
-     \@@_write_header:%
-     \@@_write_category:%
-    }%
-    \subsection*{\l_@@_category_tl}%
-    \begin{enumerate}%
-   }
-  {\end{enumerate}%
-   \@@_if_generate_xml:T{\@@_write_footer:}}
+\NewDocumentEnvironment {quiz} { o }
+  {
+    \IfNoValueF {#1}
+      { \moodleset {#1} }
+    \@@_if_generate_xml:T
+      {
+        \@@_write_header:
+        \@@_write_category:
+      }
+    \subsection* {\l_@@_category_tl}
+    \begin {enumerate}
+  }
+  {
+    \end {enumerate}
+    \@@_if_generate_xml:T
+      { \@@_write_footer: }
+  }
 
 %    \end{macrocode}                       
 % The next utility takes a single macro control sequence |#1|,
@@ -915,6 +929,7 @@
   \seq_clear:N \l_@@_dataset_items_seq
   
   \int_step_inline:nn \l_@@_dataset_count_int {
+    %round(abs(\l_@@_dataset_minimum_fp) * pow(abs(\l_@@_dataset_maximum_fp / \l_@@_dataset_minimum_fp), rand()), \l_@@_dataset_decimals_int)
     \seq_put_left:Nx \l_@@_dataset_items_seq
       {\fp_to_decimal:n {round(\l_@@_dataset_minimum_fp + rand() * (\l_@@_dataset_maximum_fp - \l_@@_dataset_minimum_fp), \l_@@_dataset_decimals_int)}}
   }
@@ -988,7 +1003,10 @@
 
 % The various options are set using key-value syntax of |xkeyval|.
 %    \begin{macrocode}
-\def\moodleset#1{\keys_set:nn{moodle}{#1}}
+\NewDocumentCommand \moodleset { m }
+  {
+    \keys_set:nn {moodle} {#1}
+  }
 %    \end{macrocode}
 % We first define some macros that will help us write other macros.
 % Calling |\generate@moodle@write@code|\marg{name}|<|\meta{HTML tag}|>|\marg{text to write}
@@ -1108,8 +1126,8 @@
 
   %% PENALTY FOR WRONG ATTEMPT
   penalty .fp_set:N = \l_@@_penalty_fp,
-  penalty .default:n = 0.1,
-  penalty .initial:n = 0.1,
+  penalty .default:n = 0.3333333,
+  penalty .initial:n = 0.3333333,
 
   %% FEEDBACK
   feedback .tl_set:N = \l_@@_feedback_tl,
@@ -1184,7 +1202,7 @@
 \keys_define:nn{moodle}{
   %% TYPE
   type .choices:nn =
-    {answer, hint, grader~info, response~template}
+    {answer, hint}
     {\str_set:Nx \l_@@_type_str \l_keys_choice_tl},
 
   %% FRACTION
@@ -1288,10 +1306,10 @@
 
   %% SHOW UNITS
   show~units .choice:,
-  show~units / none      .code:n = \def\l_@@_show_units_tl{0},
-  show~units / text      .code:n = \def\l_@@_show_units_tl{1},
-  show~units / select    .code:n = \def\l_@@_show_units_tl{2},
-  show~units / drop~down .code:n = \def\l_@@_show_units_tl{3},
+  show~units / none      .code:n = \def\l_@@_show_units_tl{3},
+  show~units / text      .code:n = \def\l_@@_show_units_tl{0},
+  show~units / select    .code:n = \def\l_@@_show_units_tl{1},
+  show~units / drop~down .code:n = \def\l_@@_show_units_tl{2},
   show~units .default:n = none,
   show~units .initial:n = none,
 
@@ -1438,10 +1456,18 @@
   response~required .initial:n = false,
   required .meta:n = {response~required=#1},
 
-  %% RESPONSEFIELDLINES
+  %% RESPONSE FIELD LINES
   response~field~lines .tl_set_x:N = \l_@@_response_field_lines_int,
   response~field~lines .default:n = 15,
   response~field~lines .initial:n = 15,
+
+  %% response template
+  response~template .tl_set:N = \l_@@_response_template_tl,
+  response~template .initial:n =,
+
+  %% grader info
+  grader~info .tl_set:N = \l_@@_grader_info_tl,
+  grader~info .initial:n =,
 
   %% ATTACHMENTS ALLOWED
   attachments~allowed .code:n = \ifstrequal{#1}{unlimited}{\def\l_@@_attachments_allowed_tl{-1}}{\def\l_@@_attachments_allowed_tl{#1}},
@@ -1469,6 +1495,14 @@
   {response_field_lines}{responsefieldlines}
   {\int_to_arabic:n\l_@@_response_field_lines_int}
 %Make synonyms 'input box size' or 'height' or 'lines'?
+
+\@@_generate_write_html_opt:nnn
+  {response_template}{responsetemplate}
+  {\l_@@_response_template_tl}
+
+\@@_generate_write_html_opt:nnn
+  {grader_info}{graderinfo}
+  {\l_@@_grader_info_tl}
 
 %% ATTACHMENTS ALLOWED
 \@@_generate_write_data:nnn
@@ -1698,22 +1732,6 @@
   \fi
 }
 
-\cs_new:cpn{@@_print_essay_response~template:x}#1{
-  \item[Response Template]~#1}
-
-\cs_new:cpn{@@_write_essay_response~template:x}#1{
-  \@@_write_begin:n{<responsetemplate~format="html">}
-    \@@_write_html:n{#1}
-  \@@_write_end:n{</responsetemplate>}}
-
-\cs_new:cpn{@@_print_essay_grader~info:x}#1{
-  \item[Grader Info]~#1}
-
-\cs_new:cpn{@@_write_essay_grader~info:x}#1{
-  \@@_write_begin:n{<graderinfo~format="html">}
-    \@@_write_html:n{#1}
-  \@@_write_end:n{</graderinfo>}}
-
 \cs_new:Npn\@@_print_essay_answer:x#1{
   \item #1}
 
@@ -1723,6 +1741,8 @@
     \@@_write_response_required:
     \@@_write_response_format:
     \@@_write_response_field_lines:
+    \@@_write_response_template:
+    \@@_write_grader_info:
     \@@_write_attachments_allowed:
     \@@_write_attachments_required:
     \@@_map_answers:xx{write}{essay}
@@ -2754,21 +2774,21 @@
 \htmlize@record@environment{clozeshortanswer}
 \htmlize@record@environment{shortanswer}
 
-\html@newenvironment{center}{\xdef\htmlize@afteraction@hook{<CENTER>\expandonce\BODY</CENTER>}}%
+\html@newenvironment{center}{\xdef\htmlize@afteraction@hook{<center>\expandonce\BODY</center>}}%
 \html@newenvironment{enumerate}{%
     \xa\gatheritems\xa{\BODY}%
-    \gdef\htmlize@afteraction@hook{<OL>}%
+    \gdef\htmlize@afteraction@hook{<ol>}%
     \loopthroughitemswithcommand{\moodle@itemtoLI}%
-    \g@addto@macro\htmlize@afteraction@hook{</OL>}%
+    \g@addto@macro\htmlize@afteraction@hook{</ol>}%
 }%
 \html@newenvironment{itemize}{%
     \xa\gatheritems\xa{\BODY}%
-    \gdef\htmlize@afteraction@hook{<UL>}%
+    \gdef\htmlize@afteraction@hook{<ul>}%
     \loopthroughitemswithcommand{\moodle@itemtoLI}%
-    \g@addto@macro\htmlize@afteraction@hook{</UL>}%
+    \g@addto@macro\htmlize@afteraction@hook{</ul>}%
 }%
 \def\moodle@itemtoLI#1{%
-  \g@addto@macro\htmlize@afteraction@hook{<LI>#1</LI>}%
+  \g@addto@macro\htmlize@afteraction@hook{<li>#1</li>}%
 }%
 
 %    \end{macrocode}
@@ -2789,7 +2809,7 @@
 \html@action@def\#{\g@addto@macro\htmlize@output{\otherhash}}%
 \html@action@def\&{\g@addto@macro\htmlize@output{\otherampersand}}%
 \html@action@def\\{\moodle@ifmathmode{\g@addto@macro\htmlize@output{\otherbackslash\otherbackslash}}%
-                                     {\g@addto@macro\htmlize@output{<BR/>}}}%
+                                     {\g@addto@macro\htmlize@output{<br/>}}}%
 \html@action@def\{{%
     \moodle@ifmathmode{\g@addto@macro\htmlize@output{\otherbackslash\otherlbrace}}%
                       {\g@addto@macro\htmlize@output{\otherlbrace}}%
@@ -2878,11 +2898,12 @@
 % \subsubsection{Command sequences for Expansion}
 % 
 %    \begin{macrocode}
-\html@def\underline#1{<SPAN STYLE="text-decoration: underline;">#1</SPAN>}
-\html@def\emph#1{<EM>#1</EM>}%
-\html@def\textbf#1{<B>#1</B>}%
+\html@def\textsuperscript#1{<sup>#1</sup>}
+\html@def\underline#1{<span style="text-decoration: underline;">#1</span>}
+\html@def\emph#1{<em>#1</em>}%
+\html@def\textbf#1{<b>#1</b>}%
 \html@def\blank{____________}%
-\html@def\par{</P><P>}%
+\html@def\par{</p><p>}%
 \html@def\aa{\&aring;}%
 \html@def\AA{\&Aring;}%
 \html@def\ae{\&aelig;}%
@@ -2981,8 +3002,8 @@
   % which we will re-insert after our work is done.
 \newcommand\moodle@includegraphics@int@int[2][]{%
   \bgroup% The grouping is to localize the changes caused by \setkeys.
-    \msg_info:nn{moodle}{Processing~\string\includegraphics[#1]{#2}~for~HTML...^^J}
-    \setkeys*{moodle@includegraphics}{#1}%
+    %\msg_info:nn{moodle}{Processing~\string\includegraphics[#1]{#2}~for~HTML...^^J}
+    \moodleset{#1}%
     % Height or width should be given in TeX dimensions like cm or pt or in,
     % and are converted to pixels for web use using the ppi key.  
     % TO DO: Can we modify \includegraphics to accept height or width in 
@@ -3011,21 +3032,21 @@
       \fi
     \fi
     %First, convert it to PNG
-    \msg_info:nn{moodle}{Converting~'#2'~to~PNG...^^J}%
-    \ShellEscape{\htmlize@imagemagick@convert\otherspace #2~-resize~\moodle@graphics@geometry~#2.png}%
+    %\msg_info:nn{moodle}{Converting~'#2'~to~PNG...^^J}%
+    \ShellEscape{\htmlize@imagemagick@convert\otherspace~#2~-resize~\moodle@graphics@geometry\otherspace~#2.png}%
     %Next, convert the PNG to base64 encoding
-    \msg_info:nn{moodle}{Converting~'#2.png'~to~base64...^^J}%
-    \ShellEscpe{\openssl\otherspace enc~-base64~-in~#2.png~-out~#2.enc}%
+    %\msg_info:nn{moodle}{Converting~'#2.png'~to~base64...^^J}%
+    \ShellEscape{\openssl\otherspace enc~-base64~-in~#2.png~-out~#2.enc}%
     %Now, save that base64 encoding in a TeX macro
     \def\moodle@newpic@baselxiv{}%
-    \msg_info:nn{moodle}{Reading~base64~file~'#2.enc'...^^J}%
+    %\msg_info:nn{moodle}{Reading~base64~file~'#2.enc'...^^J}%
     \openin\baseLXIVdatafile=#2.enc\relax
       \savebaselxivdata@recursive
     \closein\baseLXIVdatafile
     \xa\global\xa\let\csname picbaselxiv@graphics@#2\endcsname=\moodle@newpic@baselxiv%
-    \edef\htmlize@imagetag{<IMG \moodle@graphics@htmlgeometry\otherspace SRC="data:image/png;base64,\csname picbaselxiv@graphics@#2\endcsname">}%
+    \edef\htmlize@imagetag{<img~\moodle@graphics@htmlgeometry\otherspace~src="data:image/png;base64,\csname picbaselxiv@graphics@#2\endcsname">}%
     \xa\g@addto@macro\xa\htmlize@output\xa{\htmlize@imagetag}%
-    \msg_info:nn{moodle}{<IMG>~tag~inserted.^^J}%
+    %\msg_info:nn{moodle}{<IMG>~tag~inserted.^^J}%
   \egroup
   % Now we re-insert the code to get the HTMLizing going again.
   \xa\htmlize@proceedwiththerest\htmlize@afteraction@hook
@@ -3127,7 +3148,7 @@
       \let\tikzpicture\relax\let\endtikzpicture\relax
       \NewEnviron{tikzpicture}[1][]{%
         \global\advance\numpicturesread by 1\relax
-        \edef\htmlize@imagetag{<img src="data:image/png;base64,\csname picbaselxiv@\the\numpicturesread\endcsname">}%
+        \edef\htmlize@imagetag{<img~src="data:image/png;base64,\csname picbaselxiv@\the\numpicturesread\endcsname">}%
         \xa\g@addto@macro\xa\htmlize@output\xa{\htmlize@imagetag}%
       }[\htmlize@patchendenvironment]%
     }%

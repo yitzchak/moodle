@@ -799,13 +799,13 @@
     \iow_new:N \g_@@_xml_iow
     \iow_open:Nn \g_@@_xml_iow \outputfilename
     \@@_write:n {<?xml~version="1.0"~encoding="UTF-8"?>}
-    \@@_write_begin:n {<quiz>}
-      \@@_write:
+    \@@_write_begin:x {<quiz>}
+      \@@_write_newline:
   }
 
 \cs_new:Nn \@@_write_footer:
   {
-    \@@_write_end:n {</quiz>}
+    \@@_write_end:x {</quiz>}
     \iow_close:N \g_@@_xml_iow
   }
 
@@ -815,25 +815,24 @@
 % preceded by an indent of \meta{n} spaces.
 % Note that this command |\edef|'s its second argument.
 %    \begin{macrocode}
-\cs_new:Nn \@@_write:
+\cs_new:Nn \@@_write_newline:
   {
     \iow_now:Nx \g_@@_xml_iow {}
   }
 
 \cs_new:Nn \@@_write:n
   {
-    \iow_now:Nx \g_@@_xml_iow
-      {
-        \int_step_inline:nn \g_@@_xml_indent_int {\otherspace\otherspace}
-        #1
-      }
+    \tl_set:Nn \l_@@_write_tl {#1}
+    \int_step_inline:nn \g_@@_xml_indent_int
+      { \tl_put_left:Nn \l_@@_write_tl {\otherspace\otherspace} }
+    \iow_now:Nx \g_@@_xml_iow \l_@@_write_tl
   }
 
-\cs_generate_variant:Nn \@@_write:n { x }
+\cs_generate_variant:Nn \@@_write:n { x, o }
 
 \cs_new:Nn \@@_write_begin:n
   {
-    \@@_write:n {#1}
+    \@@_write:x {#1}
     \int_incr:N \g_@@_xml_indent_int
   }
   
@@ -842,10 +841,140 @@
 \cs_new:Nn \@@_write_end:n
   {
     \int_decr:N \g_@@_xml_indent_int
-    \@@_write:n {#1}
+    \@@_write:x {#1}
   }
 
 \cs_generate_variant:Nn \@@_write_end:n { x }
+
+\cs_new:Nn \@@_write_plain_text:n
+  {
+    \tl_set:Nn \l_@@_text_tl {#1}
+    \tl_trim_spaces:N \l_@@_text_tl
+    \tl_if_empty:NTF \l_@@_text_tl
+      { \@@_write:n {<text/>} }
+      { \@@_write:x {<text>\l_@@_text_tl</text>} }
+  }
+
+\cs_generate_variant:Nn \@@_write_plain_text:n { o, v, x }
+
+\cs_new:Nn \@@_write_html:n
+  {
+    \tl_set:Nn \l_@@_text_tl {#1}
+    \tl_trim_spaces:N \l_@@_text_tl
+    \tl_if_empty:NTF \l_@@_text_tl
+      { \@@_write:n {<text/>} }
+      {
+        \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{\l_@@_text_tl}
+        \tl_trim_spaces:N \moodle@htmltowrite
+        \tl_put_left:Nn \moodle@htmltowrite {<text><![CDATA[<p>}
+        \tl_put_right:Nn \moodle@htmltowrite {</p>]]></text>}
+        \@@_write:o \moodle@htmltowrite
+      }
+  }
+
+\cs_generate_variant:Nn \@@_write_html:n { o }
+
+\cs_new:Nn \@@_generate_write_html:nnn
+  {
+    % #1 = NAME for \@@_write_NAME:
+    % #2 = HTML tag
+    % #3 = what, exactly, to write
+    \cs_new:cn {@@_write_#1:}
+      {
+        \@@_write_begin:x {<#2~format="html">}
+          \@@_write_html:o {#3}
+        \@@_write_end:x {</#2>}
+      }
+  }
+
+\cs_new:Nn \@@_generate_write_html_opt:nnn
+  {
+    % #1 = NAME for \@@_write_NAME:
+    % #2 = HTML tag
+    % #3 = what, exactly, to write
+    \cs_new:cn {@@_write_#1:}
+      {
+        \tl_if_blank:oTF {#3}
+          {}
+          {
+            \@@_write_begin:x {<#2~format="html">}
+              \@@_write_html:o {#3}
+            \@@_write_end:x {</#2>}
+          }
+      }
+  }
+
+\cs_new:Nn \@@_generate_write_data:nnn
+  {
+    % #1 = NAME for \@@_write_NAME:
+    % #2 = HTML tag
+    % #3 = what, exactly, to write
+    \cs_new:cn {@@_write_#1:}
+      {
+        \@@_write:x {<#2>#3</#2>}
+      }
+  }
+
+\cs_new:Nn \@@_generate_write_plain_text:nnn
+  {
+    % #1 = NAME for \@@_write_NAME:
+    % #2 = HTML tag
+    % #3 = what, exactly, to write
+    \cs_new:cn {@@_write_#1:}
+      {
+        \@@_write_begin:x {<#2~format="plain_text">}
+          \@@_write_plain_text:x {#3}
+        \@@_write_end:x {</#2>}
+      }
+  }
+
+\cs_new:Nn \@@_generate_write_text:nnn
+  {
+    % #1 = NAME for \@@_write_NAME:
+    % #2 = HTML tag
+    % #3 = what, exactly, to write
+    \cs_new:cn {@@_write_#1:}
+      {
+        \@@_write_begin:x {<#2>}
+          \@@_write_plain_text:x {#3}
+        \@@_write_end:x {</#2>}
+      }
+  }
+
+\cs_new:Nn \@@_generate_write_bool:nnN
+  {
+    % #1 = NAME for \@@_write_NAME:
+    % #2 = HTML tag
+    % #3 = what, exactly, to write
+    \cs_new:cn {@@_write_#1:}
+      {
+        \@@_write:x {<#2> \bool_if:NTF #3 {1} {0} </#2>}
+      }
+  }
+
+\cs_new:Nn \@@_generate_write_bool_literal:nnN
+  {
+    % #1 = NAME for \@@_write_NAME:
+    % #2 = HTML tag
+    % #3 = what, exactly, to write
+    \cs_new:cn {@@_write_#1:}
+      {
+        \@@_write:x {<#2> \bool_if:NTF #3 {true} {false} </#2>}
+      }
+  }
+
+\cs_new:Nn \@@_generate_write_bool_tag:nnN
+  {
+    % #1 = NAME for \@@_write_NAME:
+    % #2 = HTML tag
+    % #3 = what, exactly, to write
+    \cs_new:cn {@@_write_#1:}
+      {
+        \bool_if:NT #3
+          { \@@_write:x {<#2/>} }
+      }
+  }
+
 
 %    \end{macrocode}
 % We now create the main |quiz| environment that will contain
@@ -883,96 +1012,133 @@
 % \subsubsection{Main Switch: to create XML or not}
 % 
 %    \begin{macrocode}
-\cs_new:Npn\@@_if_generate_xml:T#1{%
-  % If we are generating XML, do #1
-  % This run of LaTeX is currently ONLY generating a Tikz image
-  % to be saved in an external file.  We do NOT want to waste time
-  % generating XML, and moreover trying to do so would cause errors
-  % because of file dependencies.
-  \tikzifexternalizing{}{\bool_if:NTF\l_@@_draft_mode_bool{}{#1}}}
+\cs_new:Nn \@@_if_generate_xml:T
+  {
+    % If we are generating XML, do #1
+    % This run of LaTeX is currently ONLY generating a Tikz image
+    % to be saved in an external file.  We do NOT want to waste time
+    % generating XML, and moreover trying to do so would cause errors
+    % because of file dependencies.
+    \tikzifexternalizing
+      {}
+      {
+        \bool_if:NTF \l_@@_draft_mode_bool
+          {}
+          {#1}
+      }
+  }
 %    \end{macrocode}
 %
 % \subsection{Key-Value Pairs for Quiz Questions}
 % 
 
-\keys_define:nn {moodle / dataset} {
-  %% name
-  name .tl_set:N = \l_@@_dataset_name_tl,
-  name .initial:n =,
+\keys_define:nn {moodle / dataset}
+  {
+    %% name
+    name .tl_set:N = \l_@@_dataset_name_tl,
+    name .initial:n =,
 
-  %% status
-  status .tl_set:N = \l_@@_dataset_status_tl,
-  status .initial:n = {shared},
-  status .default:n = {shared},
-  
-  distribution .choices:nn = { uniform, loguniform }
-    { \tl_set_eq:NN \l_@@_dataset_distribution_tl \l_keys_choice_tl },
-  distribution .initial:n = {uniform},
-  
-  minimum .fp_set:N = \l_@@_dataset_minimum_fp,
-  minimum .initial:n = 1,
+    %% status
+    status .tl_set:N = \l_@@_dataset_status_tl,
+    status .initial:n = {shared},
+    status .default:n = {shared},
 
-  maximum .fp_set:N = \l_@@_dataset_maximum_fp,
-  maximum .initial:n = 10,
+    %% distribution
+    distribution .choices:nn = { uniform, loguniform }
+      { \tl_set_eq:NN \l_@@_dataset_distribution_tl \l_keys_choice_tl },
+    distribution .initial:n = {uniform},
 
-  decimals .int_set:N = \l_@@_dataset_decimals_int,
-  decimals .initial:n = 1,
+    %% minimum
+    minimum .fp_set:N = \l_@@_dataset_minimum_fp,
+    minimum .initial:n = 1,
 
-  count .int_set:N = \l_@@_dataset_count_int,
-  count .initial:n = 10,
-}
+    %% maximum
+    maximum .fp_set:N = \l_@@_dataset_maximum_fp,
+    maximum .initial:n = 10,
 
-\NewDocumentCommand\dataset{m}{
-  \tl_gset:cn {g_@@_dataset_fu_tl} {#1}}
+    %% decimals
+    decimals .int_set:N = \l_@@_dataset_decimals_int,
+    decimals .initial:n = 1,
 
-\cs_new:Npn \@@_initialize_dataset_items: {
-  \seq_clear:N \l_@@_dataset_items_seq
-  
-  \int_step_inline:nn \l_@@_dataset_count_int {
-    %round(abs(\l_@@_dataset_minimum_fp) * pow(abs(\l_@@_dataset_maximum_fp / \l_@@_dataset_minimum_fp), rand()), \l_@@_dataset_decimals_int)
-    \seq_put_left:Nx \l_@@_dataset_items_seq
-      {\fp_to_decimal:n {round(\l_@@_dataset_minimum_fp + rand() * (\l_@@_dataset_maximum_fp - \l_@@_dataset_minimum_fp), \l_@@_dataset_decimals_int)}}
+    %% count
+    count .int_set:N = \l_@@_dataset_count_int,
+    count .initial:n = 10
   }
-}
+
+\@@_generate_write_text:nnn {dataset_status} {status}
+  { \l_@@_dataset_status_tl }
+
+\@@_generate_write_data:nnn {dataset_type} {type}
+  {calculated}
+
+\@@_generate_write_text:nnn {dataset_name} {name}
+  { \l_@@_dataset_name_tl }
+
+\@@_generate_write_text:nnn {dataset_distribution} {distribution}
+  { \l_@@_dataset_distribution_tl }
+
+\@@_generate_write_text:nnn {dataset_minimum} {minimum}
+  { \fp_to_decimal:N \l_@@_dataset_minimum_fp }
+
+\@@_generate_write_text:nnn {dataset_maximum} {maximum}
+  { \fp_to_decimal:N \l_@@_dataset_maximum_fp }
+
+\@@_generate_write_text:nnn {dataset_decimals} {decimals}
+  { \int_to_arabic:n \l_@@_dataset_decimals_int }
+
+\@@_generate_write_data:nnn {dataset_item_count} {itemcount}
+  { \int_to_arabic:n \l_@@_dataset_count_int }
+
+\@@_generate_write_data:nnn {dataset_number_of_items} {number_of_items}
+  { \int_to_arabic:n \l_@@_dataset_count_int }
+
+\NewDocumentCommand \dataset { m }
+  {
+    \tl_gset:cn {g_@@_dataset_fu_tl} {#1}
+  }
+
+\cs_new:Nn \@@_initialize_dataset_items:
+  {
+    \seq_clear:N \l_@@_dataset_items_seq
+  
+    \int_step_inline:nn \l_@@_dataset_count_int
+      {
+        %round(abs(\l_@@_dataset_minimum_fp) * pow(abs(\l_@@_dataset_maximum_fp / \l_@@_dataset_minimum_fp), rand()), \l_@@_dataset_decimals_int)
+        \seq_put_left:Nx \l_@@_dataset_items_seq
+          {
+            \fp_to_decimal:n
+              { round(\l_@@_dataset_minimum_fp + rand() * (\l_@@_dataset_maximum_fp - \l_@@_dataset_minimum_fp), \l_@@_dataset_decimals_int) }
+          }
+      }
+  }
 
 \int_new:N \l_@@_item_int
 
-\cs_new:Npn \@@_write_dataset: {
-  \@@_write_begin:n{<dataset_definition>}
-    \@@_write_begin:n{<status>}
-      \@@_write_plain_text:o {\l_@@_dataset_status_tl}
-    \@@_write_end:n{</status>}
-    \@@_write:n {<type>calculated</type>}
-    \@@_write_begin:n{<name>}
-      \@@_write_plain_text:o {\l_@@_dataset_name_tl}
-    \@@_write_end:n{</name>}
-    \@@_write_begin:n{<distribution>}
-      \@@_write_plain_text:o {\l_@@_dataset_distribution_tl}
-    \@@_write_end:n{</distribution>}
-    \@@_write_begin:n{<minimum>}
-      \@@_write_plain_text:o {\fp_to_decimal:N\l_@@_dataset_minimum_fp}
-    \@@_write_end:n{</minimum>}
-    \@@_write_begin:n{<maximum>}
-      \@@_write_plain_text:o {\fp_to_decimal:N\l_@@_dataset_maximum_fp}
-    \@@_write_end:n{</maximum>}
-    \@@_write_begin:n{<decimals>}
-      \@@_write_plain_text:o {\int_to_arabic:n\l_@@_dataset_decimals_int}
-    \@@_write_end:n{</decimals>}
-    \@@_write:n {<itemcount>\int_to_arabic:n\l_@@_dataset_count_int</itemcount>}
-    \@@_write:n {<number_of_items>\int_to_arabic:n\l_@@_dataset_count_int</number_of_items>}
-    \@@_write_begin:n{<dataset_items>}
-      \int_zero:N \l_@@_item_int
-      \seq_map_inline:Nn \l_@@_dataset_items_seq
-        {
-          \int_incr:N \l_@@_item_int
-          \@@_write_begin:n {<dataset_item>}
-            \@@_write:n {<number>\int_to_arabic:n\l_@@_item_int</number>}
-            \@@_write:n {<value>##1</value>}
-          \@@_write_end:n {</dataset_item>}
-        }
-    \@@_write_end:n{</dataset_items>}
-  \@@_write_end:n{</dataset_definition>}
-}
+\cs_new:Nn \@@_write_dataset:
+  {
+    \@@_write_begin:x {<dataset_definition>}
+      \@@_write_dataset_status:
+      \@@_write_dataset_type:
+      \@@_write_dataset_name:
+      \@@_write_dataset_distribution:
+      \@@_write_dataset_minimum:
+      \@@_write_dataset_maximum:
+      \@@_write_dataset_decimals:
+      \@@_write_dataset_item_count:
+      \@@_write_dataset_number_of_items:
+      \@@_write_begin:x{<dataset_items>}
+        \int_zero:N \l_@@_item_int
+        \seq_map_inline:Nn \l_@@_dataset_items_seq
+          {
+            \int_incr:N \l_@@_item_int
+            \@@_write_begin:x {<dataset_item>}
+              \@@_write:x {<number>\int_to_arabic:n\l_@@_item_int</number>}
+              \@@_write:x {<value>##1</value>}
+            \@@_write_end:x {</dataset_item>}
+          }
+      \@@_write_end:x {</dataset_items>}
+    \@@_write_end:x {</dataset_definition>}
+  }
 
 \seq_new:N \l_@@_dataset_items_seq
 
@@ -998,8 +1164,12 @@
   \egroup
 }
 
-\cs_new:Npn \@@_if_calculated:TF #1 #2 {
-  \clist_if_empty:NTF \l_@@_datasets_clist {#2} {#1}} 
+\cs_new:Nn \@@_if_calculated:TF
+  {
+    \clist_if_empty:NTF \l_@@_datasets_clist
+      {#2}
+      {#1}
+  }
 
 % The various options are set using key-value syntax of |xkeyval|.
 %    \begin{macrocode}
@@ -1044,60 +1214,6 @@
 % \end{Verbatim}
 %    \begin{macrocode}
 
-\cs_new:Npn\@@_write_plain_text:n#1{
-  \tl_set:Nn\l_@@_text_tl{#1}
-  \tl_trim_spaces:N\l_@@_text_tl
-  \tl_if_empty:NTF\l_@@_text_tl
-    {\@@_write:n{<text/>}}
-    {\@@_write:n{<text>\l_@@_text_tl</text>}}}
-
-\cs_generate_variant:Nn \@@_write_plain_text:n { o, x }
-
-\cs_new:Npn\@@_write_html:n#1{
-  \tl_set:Nn\l_@@_text_tl{#1}
-  \tl_trim_spaces:N\l_@@_text_tl
-  \tl_if_empty:NTF\l_@@_text_tl
-    {\@@_write:n{<text/>}}
-    {
-      \xa\converttohtmlmacro\xa\moodle@htmltowrite\xa{\l_@@_text_tl}
-      \tl_trim_spaces:N\moodle@htmltowrite
-      \@@_write:n{<text><![CDATA[<p>\moodle@htmltowrite</p>]]></text>}
-    }}
-
-\cs_generate_variant:Nn \@@_write_html:n { o }
-
-\cs_new:Npn\@@_generate_write_html:nnn#1#2#3{
-  % #1 = NAME for \@@_write_NAME:
-  % #2 = HTML tag
-  % #3 = what, exactly, to write
-  \cs_new:cpn{@@_write_#1:}{
-    \@@_write_begin:n{<#2~format="html">}
-    \@@_write_html:o{#3}
-    \@@_write_end:n{</#2>}
-  }
-}
-
-\cs_new:Npn\@@_generate_write_html_opt:nnn#1#2#3{
-  % #1 = NAME for \@@_write_NAME:
-  % #2 = HTML tag
-  % #3 = what, exactly, to write
-  \cs_new:cpn{@@_write_#1:}{
-    \tl_if_blank:oTF{#3}{}{
-      \@@_write_begin:n{<#2~format="html">}
-      \@@_write_html:o{#3}
-      \@@_write_end:n{</#2>}}
-  }
-}
-
-\cs_new:Npn\@@_generate_write_data:nnn#1#2#3{
-  % #1 = NAME for \@@_write_NAME:
-  % #2 = HTML tag
-  % #3 = what, exactly, to write
-  \cs_new:cpn{@@_write_#1:}{
-    \@@_write:x{<#2>#3</#2>}
-  }
-}
-
 %    \end{macrocode}
 % \subsubsection{Keys for all question types}
 %    \begin{macrocode}
@@ -1107,63 +1223,62 @@
 %like \moodleset{questiontext={ABC\par [D,E]}}
 %It's not worth trying to fix.
 
-\long\def\questiontext#1{%
-  %\converttohtmlmacro\myoutput{#1}%
-  %\let\l_@@_question_text_tl=\myoutput%
-  \def\l_@@_question_text_tl{#1}%
-}%
+\@@_generate_write_html:nnn {question_text} {questiontext}
+  {  \l_@@_question_text_tl }
 
-\@@_generate_write_html:nnn{question_text}{questiontext}{\l_@@_question_text_tl}%{%
+\keys_define:nn {moodle}
+  {
+    %% category
+    category .tl_set:N = \l_@@_category_tl,
+    category .initial:n =,
 
-\keys_define:nn{moodle}{
-  %% CATEGORY
-  category .tl_set:N = \l_@@_category_tl,
-  category .initial:n =,
+    %% name
+    name .tl_set:N = \l_@@_name_tl,
+    name .initial:n =,
 
-  %% NAME
-  name .tl_set:N = \l_@@_name_tl,
-  name .initial:n =,
+    %% penalty for wrong attempt
+    penalty .fp_set:N = \l_@@_penalty_fp,
+    penalty .default:n = 0.3333333,
+    penalty .initial:n = 0.3333333,
 
-  %% PENALTY FOR WRONG ATTEMPT
-  penalty .fp_set:N = \l_@@_penalty_fp,
-  penalty .default:n = 0.3333333,
-  penalty .initial:n = 0.3333333,
+    %% feedback
+    feedback .tl_set:N = \l_@@_feedback_tl,
+    feedback .initial:n =,
 
-  %% FEEDBACK
-  feedback .tl_set:N = \l_@@_feedback_tl,
-  feedback .initial:n =,
+    %% default grade
+    default~grade .fp_set:N = \l_@@_default_grade_fp,
+    default~grade .default:n = 1.0,
+    default~grade .initial:n = 1.0,
+    points .meta:n = {default~grade=#1},
 
-  %% DEFAULT GRADE
-  default~grade .fp_set:N = \l_@@_default_grade_fp,
-  default~grade .default:n = 1.0,
-  default~grade .initial:n = 1.0,
-  points .meta:n = {default~grade=#1},
+    %% hidden
+    hidden .bool_set:N = \l_@@_hidden_bool,
+    hidden .default:n = true,
+    hidden .initial:n = false
+  }
 
-  %% HIDDEN
-  hidden .bool_set:N = \l_@@_hidden_bool,
-  hidden .default:n = true,
-  hidden .initial:n = false
-}
-
-{\catcode`\$=12\catcode`\ =12%
-\cs_new:Npn\@@_write_category:{%
-\@@_write_begin:n{<question~type="category">}%
-  \@@_write_begin:n{<category>}%
-    \@@_write:n{<text>$module$/\l_@@_category_tl</text>}%
-  \@@_write_end:n{</category>}%
-\@@_write_end:n{</question>}%
-\@@_write:n{ }%
-}}%
+\cs_new:Nn \@@_write_category:
+  {
+    \@@_write_begin:x {<question~type="category">}
+      \@@_write_begin:x {<category>}
+      \@@_write:x
+        {
+          <text>
+            \char_generate:nn{`\$}{12} module \char_generate:nn{`\$}{12}
+            / \l_@@_category_tl
+          </text>
+        }
+      \@@_write_end:x {</category>}
+    \@@_write_end:x {</question>}
+    \@@_write_newline:
+  }
 
 %% QUESTION NAME
-\cs_new:Npn\@@_write_name:{
-  \@@_write_begin:n{<name>}
-    \@@_write:n{<text>\l_@@_name_tl</text>}
-  \@@_write_end:n{</name>}
-}
+\@@_generate_write_text:nnn {name} {name} { \l_@@_name_tl }
 
 %% PENALTY FOR WRONG ATTEMPT
-\@@_generate_write_data:nnn{penalty}{penalty}{\fp_to_decimal:N\l_@@_penalty_fp}
+\@@_generate_write_data:nnn {penalty} {penalty}
+  { \fp_to_decimal:N \l_@@_penalty_fp }
 
 %% FEEDBACK
 % Moodle allows for feedback tailored to each question,
@@ -1174,24 +1289,28 @@
 % \@@_write_general_feedback: uses the HTML tag <generalfeedback>
 % whereas \@@_write_feedback: uses the tag <feedback>.
 % Note that the general feedback is NOT inherited by each answer!
-\@@_generate_write_html_opt:nnn{general_feedback}{generalfeedback}{\l_@@_feedback_tl}
-\@@_generate_write_html_opt:nnn{feedback}{feedback}{\l_@@_feedback_tl}
+\@@_generate_write_html_opt:nnn {general_feedback} {generalfeedback}
+  { \l_@@_feedback_tl }
+
+\@@_generate_write_html_opt:nnn {feedback} {feedback} { \l_@@_feedback_tl }
 
 %% DEFAULT GRADE
 %How many points the quiz question is worth.
-\@@_generate_write_data:nnn{default_grade}{defaultgrade}{\fp_to_decimal:N\l_@@_default_grade_fp}
+\@@_generate_write_data:nnn {default_grade} {defaultgrade}
+  { \fp_to_decimal:N \l_@@_default_grade_fp }
 
 %% HIDDEN
-\@@_generate_write_data:nnn{hidden}{hidden}{\bool_if:NTF\l_@@_hidden_bool{1}{0}}
+\@@_generate_write_bool:nnN {hidden} {hidden} \l_@@_hidden_bool
 
-\cs_new:Npn\@@_write_common_data:{
-  \@@_write_name:
-  \@@_write_question_text:
-  \@@_write_default_grade:
-  \@@_write_general_feedback:
-  \@@_write_penalty:
-  \@@_write_hidden:
-}
+\cs_new:Nn \@@_write_common_data:
+  {
+    \@@_write_name:
+    \@@_write_question_text:
+    \@@_write_default_grade:
+    \@@_write_general_feedback:
+    \@@_write_penalty:
+    \@@_write_hidden:
+  }
 
 % TO DO: 'tags' (i.e., keywords)
 
@@ -1199,17 +1318,18 @@
 % \subsubsection{Keys for all answers}
 %    \begin{macrocode}
 %% FRACTION -- how much this answer is worth out of 100 percent
-\keys_define:nn{moodle}{
-  %% TYPE
-  type .choices:nn =
-    {answer, hint}
-    {\str_set:Nx \l_@@_type_str \l_keys_choice_tl},
+\keys_define:nn {moodle}
+  {
+    %% type
+    type .choices:nn =
+      { answer, hint }
+      { \str_set:Nx \l_@@_type_str \l_keys_choice_tl },
 
-  %% FRACTION
-  fraction .fp_set:N = \l_@@_fraction_fp,
-  fraction .default:n = 100,
-  fraction .initial:n = 0
-}
+    %% fraction
+    fraction .fp_set:N = \l_@@_fraction_fp,
+    fraction .default:n = 100,
+    fraction .initial:n = 0
+  }
 %We do not create \moodle@writefraction, because the fraction occurs in
 %the XML within the answer tag, like <answer fraction="75">.
 %    \end{macrocode}
@@ -1217,70 +1337,74 @@
 %    \begin{macrocode}
 
 %The key 'multiple' is an antonym to 'single'.
-\keys_define:nn{moodle}{
-  %% SINGLE and MULTIPLE -- for multichoice, is there 1 right answer or more than 1?
-  single .bool_set:N = \l_@@_single_bool,
-  single .default:n = true,
-  single .initial:n = true,
-  multiple .bool_set_inverse:N = \l_@@_single_bool,
+\keys_define:nn {moodle}
+  {
+    %% single and multiple -- for multichoice, is there 1 right answer or more than 1?
+    single .bool_set:N = \l_@@_single_bool,
+    single .default:n = true,
+    single .initial:n = true,
+    multiple .bool_set_inverse:N = \l_@@_single_bool,
 
-  %% SHUFFLE ANSWERS
-  shuffle .bool_set:N = \l_@@_shuffle_bool,
-  shuffle .default:n = true,
-  shuffle .initial:n = true,
+    %% shuffle answers
+    shuffle .bool_set:N = \l_@@_shuffle_bool,
+    shuffle .default:n = true,
+    shuffle .initial:n = true,
 
-  %% NUMBERING -- for numbering of multichoice questions
-  numbering .choice:,
-  numbering / alpha  .code:n   = \cs_set:Npn\l_@@_numbering_tl{abc},
-  numbering / alph   .code:n   = \cs_set:Npn\l_@@_numbering_tl{abc},
-  numbering / Alpha  .code:n   = \cs_set:Npn\l_@@_numbering_tl{ABC},
-  numbering / Alph   .code:n   = \cs_set:Npn\l_@@_numbering_tl{ABC},
-  numbering / arabic .code:n   = \cs_set:Npn\l_@@_numbering_tl{123},
-  numbering / roman  .code:n   = \cs_set:Npn\l_@@_numbering_tl{iii},
-  numbering / Roman  .code:n   = \cs_set:Npn\l_@@_numbering_tl{IIII},
-  numbering / abc    .tl_set:N = \l_@@_numbering_tl,
-  numbering / ABC    .tl_set:N = \l_@@_numbering_tl,
-  numbering / 123    .tl_set:N = \l_@@_numbering_tl,
-  numbering / iii    .tl_set:N = \l_@@_numbering_tl,
-  numbering / IIII   .tl_set:N = \l_@@_numbering_tl,
-  numbering .default:n = abc,
-  numbering .initial:n = abc,
-  answer~numbering .meta:n = {numbering=#1},
+    %% numbering -- for numbering of multichoice questions
+    numbering .choice:,
+    numbering / alpha  .code:n   = \cs_set:Npn \l_@@_numbering_tl{abc},
+    numbering / alph   .code:n   = \cs_set:Npn \l_@@_numbering_tl{abc},
+    numbering / Alpha  .code:n   = \cs_set:Npn \l_@@_numbering_tl{ABC},
+    numbering / Alph   .code:n   = \cs_set:Npn \l_@@_numbering_tl{ABC},
+    numbering / arabic .code:n   = \cs_set:Npn \l_@@_numbering_tl{123},
+    numbering / roman  .code:n   = \cs_set:Npn \l_@@_numbering_tl{iii},
+    numbering / Roman  .code:n   = \cs_set:Npn \l_@@_numbering_tl{IIII},
+    numbering / abc    .tl_set:N = \l_@@_numbering_tl,
+    numbering / ABC    .tl_set:N = \l_@@_numbering_tl,
+    numbering / 123    .tl_set:N = \l_@@_numbering_tl,
+    numbering / iii    .tl_set:N = \l_@@_numbering_tl,
+    numbering / IIII   .tl_set:N = \l_@@_numbering_tl,
+    numbering .default:n = abc,
+    numbering .initial:n = abc,
+    answer~numbering .meta:n = {numbering=#1},
 
-  %% TO DO: CORRECTFEEDBACK
-  %% TO DO: PARTIALLYCORRECTFEEDBACK
-  %% TO DO: INCORRECTFEEDBACK
-  %% TO DO: NUMCORRECT key
+    %% TODO: CORRECTFEEDBACK
+    %% TODO: PARTIALLYCORRECTFEEDBACK
+    %% TODO: INCORRECTFEEDBACK
+    %% TODO: NUMCORRECT key
 
-  %% DISPLAY MODE -- affects Cloze multiple choice questions only.
-  display~mode .choice:,
-  display~mode / inline     .code:n = \cs_set:Npn\l_@@_display_mode_tl{0},
-  display~mode / vertical   .code:n = \cs_set:Npn\l_@@_display_mode_tl{1},
-  display~mode / horizontal .code:n = \cs_set:Npn\l_@@_display_mode_tl{2},
-  display~mode .default:n = inline,
-  display~mode .initial:n = inline
-}
+    %% display mode -- affects Cloze multiple choice questions only.
+    display~mode .choice:,
+    display~mode / inline     .code:n = \cs_set:Npn \l_@@_display_mode_tl{0},
+    display~mode / vertical   .code:n = \cs_set:Npn \l_@@_display_mode_tl{1},
+    display~mode / horizontal .code:n = \cs_set:Npn \l_@@_display_mode_tl{2},
+    display~mode .default:n = inline,
+    display~mode .initial:n = inline
+  }
 
 %% SINGLE and MULTIPLE -- for multichoice, is there 1 right answer or more than 1?
-\@@_generate_write_data:nnn{single}{single}{\bool_if:NTF\l_@@_single_bool{true}{false}}
+\@@_generate_write_bool_literal:nnN {single} {single} \l_@@_single_bool
 
 %% SHUFFLE ANSWERS
-\@@_generate_write_data:nnn{shuffle}{shuffleanswers}{\bool_if:NTF\l_@@_shuffle_bool{1}{0}}
+\@@_generate_write_bool:nnN {shuffle} {shuffleanswers} \l_@@_shuffle_bool
 
 %% NUMBERING -- for numbering of multichoice questions
-\@@_generate_write_data:nnn{answer_numbering}{answernumbering}{\l_@@_numbering_tl}%
+\@@_generate_write_data:nnn {answer_numbering} {answernumbering}
+  \l_@@_numbering_tl
       
-\cs_new:Npn\@@_obey_numbering_style:{
-  \str_case:nnTF\l_@@_numbering_tl
-    {
-      {abc}{renewcommand\theenumii{\alph{enumii}}}
-      {ABC}{renewcommand\theenumii{\Alph{enumii}}}
-      {123}{renewcommand\theenumii{\arabic{enumii}}}
-      {iii}{renewcommand\theenumii{\roman{enumii}}}
-      {IIII}{renewcommand\theenumii{\Roman{enumii}}}
-    }
-    {}
-    {\renewcommand\labelenumii{$\bullet$~}}}
+\cs_new:Nn \@@_obey_numbering_style:
+  {
+    \str_case:nnTF \l_@@_numbering_tl
+      {
+        {abc}  { \renewcommand \theenumii { \alph{enumii} } }
+        {ABC}  { \renewcommand \theenumii { \Alph{enumii} } }
+        {123}  { \renewcommand \theenumii { \arabic{enumii} } }
+        {iii}  { \renewcommand \theenumii { \roman{enumii} } }
+        {IIII} { \renewcommand \theenumii { \Roman{enumii} } }
+      }
+      {}
+      { \renewcommand \labelenumii { $\bullet$~ } }
+  }
 
 %TO DO: * In the PDF, how should 'none' in a multi look different from
 %         short answer or numerical options?
@@ -1290,260 +1414,270 @@
 %    \end{macrocode}
 % \subsubsection{Keys for numerical questions}
 %    \begin{macrocode}
-\keys_define:nn{moodle}{
-  %% TOLERANCE
-  tolerance .fp_set:N = \l_@@_tolerance_fp,
-  tolerance .default:n = 0,
-  tolerance .initial:n = 0,
+\keys_define:nn {moodle}
+  {
+    %% TOLERANCE
+    tolerance .fp_set:N = \l_@@_tolerance_fp,
+    tolerance .default:n = 0,
+    tolerance .initial:n = 0,
 
-  %% tolerance type
-  tolerance~type .choice:,
-  tolerance~type / relative .code:n = \tl_set:Nn\l_@@_tolerance_type_tl{1},
-  tolerance~type / nominal .code:n = \tl_set:Nn\l_@@_tolerance_type_tl{2},
-  tolerance~type / geometric .code:n = \tl_set:Nn\l_@@_tolerance_type_tl{3},
-  tolerance~type .default:n = relative,
-  tolerance~type .initial:n = relative,
+    %% tolerance type
+    tolerance~type .choice:,
+    tolerance~type / relative .code:n = \tl_set:Nn\l_@@_tolerance_type_tl{1},
+    tolerance~type / nominal .code:n = \tl_set:Nn\l_@@_tolerance_type_tl{2},
+    tolerance~type / geometric .code:n = \tl_set:Nn\l_@@_tolerance_type_tl{3},
+    tolerance~type .default:n = relative,
+    tolerance~type .initial:n = relative,
 
-  %% SHOW UNITS
-  show~units .choice:,
-  show~units / none      .code:n = \def\l_@@_show_units_tl{3},
-  show~units / text      .code:n = \def\l_@@_show_units_tl{0},
-  show~units / select    .code:n = \def\l_@@_show_units_tl{1},
-  show~units / drop~down .code:n = \def\l_@@_show_units_tl{2},
-  show~units .default:n = none,
-  show~units .initial:n = none,
+    %% SHOW UNITS
+    show~units .choice:,
+    show~units / none      .code:n = \def\l_@@_show_units_tl{3},
+    show~units / text      .code:n = \def\l_@@_show_units_tl{0},
+    show~units / select    .code:n = \def\l_@@_show_units_tl{1},
+    show~units / drop~down .code:n = \def\l_@@_show_units_tl{2},
+    show~units .default:n = none,
+    show~units .initial:n = none,
 
-  %% UNIT GRADING TYPE
-  unit~grading~type .choice:,
-  unit~grading~type / none     .code:n = \def\l_@@_unit_grading_type_tl{0},
-  unit~grading~type / response .code:n = \def\l_@@_unit_grading_type_tl{1},
-  unit~grading~type / question .code:n = \def\l_@@_unit_grading_type_tl{2},
-  unit~grading~type .default:n = none,
-  unit~grading~type .initial:n = none,
+    %% UNIT GRADING TYPE
+    unit~grading~type .choice:,
+    unit~grading~type / none     .code:n = \def\l_@@_unit_grading_type_tl{0},
+    unit~grading~type / response .code:n = \def\l_@@_unit_grading_type_tl{1},
+    unit~grading~type / question .code:n = \def\l_@@_unit_grading_type_tl{2},
+    unit~grading~type .default:n = none,
+    unit~grading~type .initial:n = none,
 
-  %% PENALTY FOR INCORRECT UNITS
-  unit~penalty .tl_set:N = \l_@@_unit_penalty_tl,
-  unit~penalty .default:n = 0.1,
-  unit~penalty .initial:n = 0.1,
+    %% PENALTY FOR INCORRECT UNITS
+    unit~penalty .tl_set:N = \l_@@_unit_penalty_tl,
+    unit~penalty .default:n = 0.1,
+    unit~penalty .initial:n = 0.1,
 
-  %% UNITS LEFT
-  units~left .bool_set:N = \l_@@_units_left_bool,
-  units~left .default:n = true,
-  units~left .initial:n = false,
+    %% UNITS LEFT
+    units~left .bool_set:N = \l_@@_units_left_bool,
+    units~left .default:n = true,
+    units~left .initial:n = false,
 
-  %% UNITS
-  units .code:n = \keyval_parse:NNn\def_unit:n\def_unit:nn{#1},
-  
-  %% datasets
-  datasets .clist_set:N = \l_@@_datasets_clist,
-  datasets .initial:n = {},
-  
-  %% dataset
-  dataset .code:n = {\clist_put_right:Nn\l_@@_datasets_clist{{#1}}},
+    %% UNITS
+    units .code:n = \keyval_parse:NNn\def_unit:n\def_unit:nn{#1},
 
-  %% synchronize
-  synchronize .bool_set:N = \l_@@_synchronize_bool,
-  synchronize .default:n = true,
-  synchronize .initial:n = false,
-  
-  %% display format
-  display~format .choice:,
-  display~format / decimal .code:n = \tl_set:Nn\l_@@_display_format_tl{1},
-  display~format / significant .code:n = \tl_set:Nn\l_@@_display_format_tl{2},
-  display~format .default:n = decimal,
-  display~format .initial:n = decimal,
-  
-  %% display digits
-  display~digits .int_set:N = \l_@@_display_digits_int,
-  display~digits .default:n = 1,
-  display~digits .initial:n = 2
-}
+    %% datasets
+    datasets .clist_set:N = \l_@@_datasets_clist,
+    datasets .initial:n = {},
+
+    %% dataset
+    dataset .code:n = {\clist_put_right:Nn\l_@@_datasets_clist{{#1}}},
+
+    %% synchronize
+    synchronize .bool_set:N = \l_@@_synchronize_bool,
+    synchronize .default:n = true,
+    synchronize .initial:n = false,
+
+    %% display format
+    display~format .choice:,
+    display~format / decimal .code:n = \tl_set:Nn\l_@@_display_format_tl{1},
+    display~format / significant .code:n = \tl_set:Nn\l_@@_display_format_tl{2},
+    display~format .default:n = decimal,
+    display~format .initial:n = decimal,
+
+    %% display digits
+    display~digits .int_set:N = \l_@@_display_digits_int,
+    display~digits .default:n = 1,
+    display~digits .initial:n = 2
+  }
 
 %% tolerance
-\@@_generate_write_data:nnn{tolerance}{tolerance}{\fp_to_tl:N\l_@@_tolerance_fp}%
+\@@_generate_write_data:nnn {tolerance} {tolerance}
+  { \fp_to_tl:N \l_@@_tolerance_fp }
 
 %% tolerance type
-\@@_generate_write_data:nnn{tolerance_type}{tolerancetype}{\l_@@_tolerance_type_tl}%
+\@@_generate_write_data:nnn {tolerance_type} {tolerancetype}
+  \l_@@_tolerance_type_tl
 
 %% SHOW UNITS
-\@@_generate_write_data:nnn{show_units}{showunits}{\l_@@_show_units_tl}%
+\@@_generate_write_data:nnn {show_units} {showunits} \l_@@_show_units_tl
 
 %% UNIT GRADING TYPE
-\@@_generate_write_data:nnn{unit_grading_type}{unitgradingtype}{\l_@@_unit_grading_type_tl}%
+\@@_generate_write_data:nnn {unit_grading_type} {unitgradingtype}
+  \l_@@_unit_grading_type_tl
 
 %% PENALTY FOR INCORRECT UNITS
-\@@_generate_write_data:nnn{unit_penalty}{unitpenalty}{\l_@@_unit_penalty_tl}%
+\@@_generate_write_data:nnn {unit_penalty} {unitpenalty} \l_@@_unit_penalty_tl
 
 %% UNITS LEFT
-\@@_generate_write_data:nnn{units_left}{unitsleft}{\bool_if:NTF\l_@@_units_left_bool{1}{0}}%
+\@@_generate_write_bool:nnN {units_left} {unitsleft} \l_@@_units_left_bool
 
 %% UNITS
-\prop_new:N\l_@@_units_prop%
+\prop_new:N \l_@@_units_prop
 
-\def\def_unit:nn#1#2{\prop_put:Nnn\l_@@_units_prop{#1}{\ifblank{#2}{1}{#2}}}%
-\def\def_unit:n#1{\prop_put:Nnn\l_@@_units_prop{#1}{1}}%
-
-\cs_new:Npn\@@_write_unit:xx#1#2{%
-  \@@_write_begin:n{<unit>}
-    \@@_write:n{<unit_name>#1</unit_name>}
-    \@@_write:n{<multiplier>\ifblank{#2}{1}{#2}</multiplier>}
-  \@@_write_end:n{</unit>}}%
-
-\cs_new:Npn\@@_write_units:{
-  \prop_if_empty:NTF\l_@@_units_prop{}{
-    \@@_write_begin:n{<units>}
-      \prop_map_function:NN\l_@@_units_prop\@@_write_unit:xx
-    \@@_write_end:n{</units>}
+\cs_new:Nn \def_unit:nn
+  {
+    \prop_put:Nnn \l_@@_units_prop {#1}
+      { \ifblank{#2} {1} {#2} }
   }
-}
+
+\cs_new:Nn \def_unit:n
+  { \prop_put:Nnn \l_@@_units_prop {#1} {1} }
+
+\cs_new:Nn \@@_write_unit:nn
+  {
+    \@@_write_begin:x {<unit>}
+      \@@_write:x {<unit_name>#1</unit_name>}
+      \@@_write:x {<multiplier>\ifblank{#2}{1}{#2}</multiplier>}
+    \@@_write_end:x {</unit>}
+  }
+
+\cs_generate_variant:Nn \@@_write_unit:nn { xx }
+
+\cs_new:Nn \@@_write_units:
+  {
+    \prop_if_empty:NTF \l_@@_units_prop
+      {}
+      {
+        \@@_write_begin:x {<units>}
+          \prop_map_function:NN \l_@@_units_prop \@@_write_unit:xx
+        \@@_write_end:x {</units>}
+      }
+  }
 
 %% synchronize
-\@@_generate_write_data:nnn{synchronize}{synchronize}{\bool_if:NTF\l_@@_synchronize_bool{1}{0}}
+\@@_generate_write_bool:nnN {synchronize} {synchronize} \l_@@_synchronize_bool
 
 %% display format
-\@@_generate_write_data:nnn{display_format}{correctanswerformat}{\l_@@_display_format_tl}%
+\@@_generate_write_data:nnn {display_format} {correctanswerformat}
+  \l_@@_display_format_tl
 
 %% display digits
-\@@_generate_write_data:nnn{display_digits}{correctanswerlength}{\int_to_arabic:n\l_@@_display_digits_int}%
+\@@_generate_write_data:nnn {display_digits} {correctanswerlength}
+  { \int_to_arabic:n \l_@@_display_digits_int }
 
 %    \end{macrocode}
 % \subsubsection{Keys for short answer questions}
 %    \begin{macrocode}
-\keys_define:nn{moodle}{
-  %% CASE SENSITIVE
-  % We make 'use case' a synonym for 'case sensitive'.
-  case~sensitive .bool_set:N = \l_@@_case_sensitive_bool,
-  case~sensitive .default:n = true,
-  case~sensitive .initial:n = false,
-  use~case .meta:n = {case~sensitive=#1}
-}
+\keys_define:nn {moodle}
+  {
+    %% CASE SENSITIVE
+    % We make 'use case' a synonym for 'case sensitive'.
+    case~sensitive .bool_set:N = \l_@@_case_sensitive_bool,
+    case~sensitive .default:n = true,
+    case~sensitive .initial:n = false,
+    use~case .meta:n = {case~sensitive=#1}
+  }
 
 %% CASE SENSITIVE
-\@@_generate_write_data:nnn{use_case}{usecase}{\bool_if:NTF\l_@@_case_sensitive_bool{1}{0}}
+\@@_generate_write_bool:nnN {use_case} {usecase} \l_@@_case_sensitive_bool
 
 %    \end{macrocode}
 % \subsubsection{Keys for matching questions}
 %    \begin{macrocode}
 
-\keys_define:nn{moodle}{
-  %% DRAG-AND-DROP FORMAT
-  % We make 'dd' and 'dragdrop' and 'drag and drop' synonyms for 'draganddrop'.
-  drag~and~drop .bool_set:N = \l_@@_drag_and_drop_bool,
-  drag~and~drop .default:n = true,
-  drag~and~drop .initial:n = false,
-  draganddrop .meta:n = {drag~and~drop=#1},
-  dd .meta:n = {drag~and~drop=#1}
-}
+\keys_define:nn {moodle}
+  {
+    %% DRAG-AND-DROP FORMAT
+    % We make 'dd' and 'dragdrop' and 'drag and drop' synonyms for 'draganddrop'.
+    drag~and~drop .bool_set:N = \l_@@_drag_and_drop_bool,
+    drag~and~drop .default:n = true,
+    drag~and~drop .initial:n = false,
+    draganddrop .meta:n = {drag~and~drop=#1},
+    dd .meta:n = {drag~and~drop=#1}
+  }
 
 %    \end{macrocode}
 % \subsubsection{Keys for essay questions}
 %    \begin{macrocode}
-\keys_define:nn{moodle}{
-  %% EDITOR
-  response~format .choice:,
-  response~format / html .code:n = \def\l_@@_response_format_tl{editor}, % HTML Editor
-  response~format / html+file .code:n = \def\l_@@_response_format_tl{editorfilepicker}, % HTML Editor with File Picker
-  response~format / text .code:n = \def\l_@@_response_format_tl{plain}, % Plain text
-  response~format / monospaced .code:n = \def\l_@@_response_format_tl{plain}, % Plain text
-  response~format / file .code:n = \def\l_@@_response_format_tl{noinline}, % No inline text (i.e., attachments only)
-  response~format / noinline .code:n = \def\l_@@_response_format_tl{noinline}, % No inline text (i.e., attachments only)
-  response~format .default:n = html,
-  response~format .initial:n = html,
+\keys_define:nn {moodle}
+  {
+    %% EDITOR
+    response~format .choice:,
+    response~format / html .code:n = \def\l_@@_response_format_tl{editor}, % HTML Editor
+    response~format / html+file .code:n = \def\l_@@_response_format_tl{editorfilepicker}, % HTML Editor with File Picker
+    response~format / text .code:n = \def\l_@@_response_format_tl{plain}, % Plain text
+    response~format / monospaced .code:n = \def\l_@@_response_format_tl{plain}, % Plain text
+    response~format / file .code:n = \def\l_@@_response_format_tl{noinline}, % No inline text (i.e., attachments only)
+    response~format / noinline .code:n = \def\l_@@_response_format_tl{noinline}, % No inline text (i.e., attachments only)
+    response~format .default:n = html,
+    response~format .initial:n = html,
 
-  %% RESPONSE REQUIRED
-  response~required .bool_set:N = \l_@@_response_required_bool,
-  response~required .default:n = true,
-  response~required .initial:n = false,
-  required .meta:n = {response~required=#1},
+    %% RESPONSE REQUIRED
+    response~required .bool_set:N = \l_@@_response_required_bool,
+    response~required .default:n = true,
+    response~required .initial:n = false,
+    required .meta:n = {response~required=#1},
 
-  %% RESPONSE FIELD LINES
-  response~field~lines .tl_set_x:N = \l_@@_response_field_lines_int,
-  response~field~lines .default:n = 15,
-  response~field~lines .initial:n = 15,
+    %% RESPONSE FIELD LINES
+    response~field~lines .tl_set_x:N = \l_@@_response_field_lines_int,
+    response~field~lines .default:n = 15,
+    response~field~lines .initial:n = 15,
 
-  %% response template
-  response~template .tl_set:N = \l_@@_response_template_tl,
-  response~template .initial:n =,
+    %% response template
+    response~template .tl_set:N = \l_@@_response_template_tl,
+    response~template .initial:n =,
 
-  %% grader info
-  grader~info .tl_set:N = \l_@@_grader_info_tl,
-  grader~info .initial:n =,
+    %% grader info
+    grader~info .tl_set:N = \l_@@_grader_info_tl,
+    grader~info .initial:n =,
 
-  %% ATTACHMENTS ALLOWED
-  attachments~allowed .code:n = \ifstrequal{#1}{unlimited}{\def\l_@@_attachments_allowed_tl{-1}}{\def\l_@@_attachments_allowed_tl{#1}},
-  attachments~allowed .default:n = 1,
-  attachments~allowed .initial:n = 0,
+    %% ATTACHMENTS ALLOWED
+    attachments~allowed .code:n = \ifstrequal{#1}{unlimited}{\def\l_@@_attachments_allowed_tl{-1}}{\def\l_@@_attachments_allowed_tl{#1}},
+    attachments~allowed .default:n = 1,
+    attachments~allowed .initial:n = 0,
 
-  %% ATTACHMENTS REQUIRED
-  attachments~required .int_set:N = \l_@@_attachments_required_int,
-  attachments~required .default:n = 1,
-  attachments~required .initial:n = 0,
-}
+    %% ATTACHMENTS REQUIRED
+    attachments~required .int_set:N = \l_@@_attachments_required_int,
+    attachments~required .default:n = 1,
+    attachments~required .initial:n = 0,
+  }
 
 %% EDITOR
-\@@_generate_write_data:nnn
-  {response_format}{responseformat}
-  {\l_@@_response_format_tl}%
+\@@_generate_write_data:nnn {response_format} {responseformat}
+  \l_@@_response_format_tl
 
 %% RESPONSE REQUIRED
-\@@_generate_write_data:nnn
-  {response_required}{responserequired}
-  {\bool_if:NTF\l_@@_response_required_bool{1}{0}}%
+\@@_generate_write_bool:nnN {response_required} {responserequired}
+  \l_@@_response_required_bool
 
 %% RESPONSEFIELDLINES
-\@@_generate_write_data:nnn
-  {response_field_lines}{responsefieldlines}
-  {\int_to_arabic:n\l_@@_response_field_lines_int}
+\@@_generate_write_data:nnn {response_field_lines} {responsefieldlines}
+  { \int_to_arabic:n \l_@@_response_field_lines_int }
 %Make synonyms 'input box size' or 'height' or 'lines'?
 
-\@@_generate_write_html_opt:nnn
-  {response_template}{responsetemplate}
-  {\l_@@_response_template_tl}
+\@@_generate_write_html_opt:nnn {response_template} {responsetemplate}
+  { \l_@@_response_template_tl }
 
-\@@_generate_write_html_opt:nnn
-  {grader_info}{graderinfo}
-  {\l_@@_grader_info_tl}
+\@@_generate_write_html_opt:nnn {grader_info} {graderinfo}
+  \l_@@_grader_info_tl
 
 %% ATTACHMENTS ALLOWED
-\@@_generate_write_data:nnn
-  {attachments_allowed}{attachments}
-  {\l_@@_attachments_allowed_tl}
+\@@_generate_write_data:nnn {attachments_allowed} {attachments}
+  \l_@@_attachments_allowed_tl
 
 %% ATTACHMENTS REQUIRED
-\@@_generate_write_data:nnn
-  {attachments_required}{attachmentsrequired}
-  {\int_to_arabic:n\l_@@_attachments_required_int}
+\@@_generate_write_data:nnn {attachments_required} {attachmentsrequired}
+  { \int_to_arabic:n \l_@@_attachments_required_int }
 
 %    \end{macrocode}
 % \subsubsection{Hint tags}
 % The following are not yet fully implemented.
 %    \begin{macrocode}
 
-\keys_define:nn{moodle}{
-  %% SHOW  NUM  CORRECT
-  show~num~correct .bool_set:N = \l_@@_show_num_correct_bool,
-  show~num~correct .default:n = true,
-  show~num~correct .initial:n = false,
+\keys_define:nn {moodle}
+  {
+    %% SHOW  NUM  CORRECT
+    show~num~correct .bool_set:N = \l_@@_show_num_correct_bool,
+    show~num~correct .default:n = true,
+    show~num~correct .initial:n = false,
 
-  %% CLEAR WRONG
-  clear~wrong .bool_set:N = \l_@@_clear_wrong_bool,
-  clear~wrong .default:n = true,
-  clear~wrong .initial:n = false
-}
+    %% CLEAR WRONG
+    clear~wrong .bool_set:N = \l_@@_clear_wrong_bool,
+    clear~wrong .default:n = true,
+    clear~wrong .initial:n = false
+  }
 
 %% SHOW NUM CORRECT
-\cs_new:Npn\@@_write_show_num_correct:{
-  \bool_if:NTF\l_@@_show_num_correct_bool
-    {\@@_write:n{<shownumcorrect/>}}
-    {}
-}
+\@@_generate_write_bool_tag:nnN {show_num_correct} {shownumcorrect}
+  \l_@@_show_num_correct_bool
 
 %% CLEAR WRONG
-\cs_new:Npn\@@_write_clear_wrong:{
-  \bool_if:NTF\l_@@_clear_wrong_bool
-    {\@@_write:n{<clearwrong/>}}
-    {}
-}
+\@@_generate_write_bool_tag:nnN {clear_wrong} {clearwrong}
+  \l_@@_clear_wrong_bool
 
 %% Process options now allowing any key to specified at the package level.
 \ProcessKeysPackageOptions{moodle}
@@ -1632,7 +1766,7 @@
 % For example, to create the `shortanswer' question type,
 % we shall call 
 % \begin{Verbatim}[gobble=5,frame=single]
-%    \@@_make_frontend{shortanswer}
+%    \@@_make_frontend:n {shortanswer}
 %    \def\moodle@shortanswer@latexprocessing{...}
 %    \def\saveshortansweranswer#1{...}
 %    \def\writeshortanswerquestion{...}
@@ -1674,53 +1808,59 @@
 
 \int_new:N\g_@@_name_count_int
 
-\cs_new:Npn\@@_make_frontend#1{%
-  \NewEnviron{#1}[1][]{
-    \bgroup
-      \def\endclozemulti@code{}
-      \moodleset{##1}
-      \expandafter\gatheritems\xa{\BODY}
-      \tl_set_eq:NN\l_@@_question_text_tl\gatheredheader
-      \bool_if:NTF\l_@@_in_cloze_bool{}{
-        \tl_if_empty:NTF\l_@@_name_tl
-          {
-            \int_incr:N\g_@@_name_count_int
-            \tl_set:Nx\l_@@_name_tl{question-\int_to_arabic:n\g_@@_name_count_int}}
-          {}}
-      \ifhtmlizer@active
-        %HTML version
-        \edef\l_@@_cloze_text_tl{
-          \l_@@_question_text_tl
-          \{\fp_to_decimal:N\l_@@_default_grade_fp :
-          \csname @@_cloze_#1_tag:\endcsname :}
-        \loopthroughitemswithcommand{\@@_cloze_answer:x}%
-        \tl_put_right:Nn\l_@@_cloze_text_tl{\}}
-        \xa\gdef\xa\htmlize@afteraction@hook\xa{\l_@@_cloze_text_tl}%
-        \def\endclozemulti@code{\htmlize@patchendenvironment}%
-      \else
-        %First, the LaTeX processing
-        \bool_if:NTF\l_@@_in_cloze_bool{}{
-          \item \textbf{\l_@@_name_tl}\par\noindent}
-        \l_@@_question_text_tl
-        \csname @@_print_#1_question:\endcsname
-        \bool_if:NTF\l_@@_in_cloze_bool{}{
-          %Now, writing information to XML
-          \@@_if_generate_xml:T{%
-            \csname @@_write_#1_question:\endcsname
-          }}
-      \fi
-      \passvalueaftergroup\endclozemulti@code%
-      \passvalueaftergroup\htmlize@afteraction@hook%
-    \egroup
-  }[\endclozemulti@code]
-}
+\cs_new:Nn \@@_make_frontend:n
+  {
+    \NewDocumentEnvironment {#1} { o +b }
+      {
+        \group_begin:
+          \def\endclozemulti@code{}
+          \IfNoValueF {##1}
+            { \moodleset {##1} }
+          \gatheritems{##2}
+          \tl_set_eq:NN \l_@@_question_text_tl \gatheredheader
+          \bool_if:NTF\l_@@_in_cloze_bool{}{
+            \tl_if_empty:NTF\l_@@_name_tl
+              {
+                \int_incr:N\g_@@_name_count_int
+                \tl_set:Nx\l_@@_name_tl{question-\int_to_arabic:n\g_@@_name_count_int}}
+              {}}
+          \ifhtmlizer@active
+            %HTML version
+            \edef\l_@@_cloze_text_tl{
+              \l_@@_question_text_tl
+              \{\fp_to_decimal:N\l_@@_default_grade_fp :
+              \csname @@_cloze_#1_tag:\endcsname :}
+            \loopthroughitemswithcommand{\@@_cloze_answer:x}%
+            \tl_put_right:Nn\l_@@_cloze_text_tl{\}}
+            \xa\gdef\xa\htmlize@afteraction@hook\xa{\l_@@_cloze_text_tl}%
+            \def\endclozemulti@code{\htmlize@patchendenvironment}%
+          \else
+            %First, the LaTeX processing
+            \bool_if:NTF\l_@@_in_cloze_bool{}{
+              \item \textbf{\l_@@_name_tl}\par\noindent}
+            \l_@@_question_text_tl
+            \csname @@_print_#1_question:\endcsname
+            \bool_if:NTF\l_@@_in_cloze_bool{}{
+              %Now, writing information to XML
+              \@@_if_generate_xml:T{%
+                \csname @@_write_#1_question:\endcsname
+              }}
+          \fi
+          \passvalueaftergroup\endclozemulti@code%
+          \passvalueaftergroup\htmlize@afteraction@hook%
+        \group_end:
+      }
+      {
+        \endclozemulti@code
+      }
+  }
 
 %    \end{macrocode}
 %
 % \subsubsection{Essay Question Front-End}
 % 
 %    \begin{macrocode}
-\@@_make_frontend{essay}
+\@@_make_frontend:n {essay}
 
 \cs_new:Npn\@@_print_essay_question:{
   \ifnum\c@numgathereditems>0\relax
@@ -1736,7 +1876,7 @@
   \item #1}
 
 \cs_new:Npn\@@_write_essay_question:{
-  \@@_write_begin:n{<question~type="essay">}
+  \@@_write_begin:x{<question~type="essay">}
     \@@_write_common_data:
     \@@_write_response_required:
     \@@_write_response_format:
@@ -1746,13 +1886,13 @@
     \@@_write_attachments_allowed:
     \@@_write_attachments_required:
     \@@_map_answers:xx{write}{essay}
-  \@@_write_end:n{</question>}
-  \@@_write:n{ }
+  \@@_write_end:x{</question>}
+  \@@_write_newline:
 }
 
 \cs_new:Npn\@@_write_essay_answer:x#1{
   \xa\converttohtmlmacro\xa\moodle@answertext@html\xa{#1}%
-  \@@_write:n{<li>\moodle@answertext@html</li>}}
+  \@@_write:o{<li>\moodle@answertext@html</li>}}
 
 %    \end{macrocode}
 %
@@ -1763,7 +1903,7 @@
 % TO DO: Make an optional argument for width?  This wouldn't affect Moodle,
 %        only the appearance in the PDF.  It doesn't seem worth it.
 
-\@@_make_frontend{shortanswer}
+\@@_make_frontend:n {shortanswer}
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_shortanswer_question:{
@@ -1788,33 +1928,33 @@
   #1}
 
 \cs_new:Npn\@@_write_shortanswer_answer:x#1{
-  \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
+  \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write_plain_text:x{#1}
     \@@_write_feedback:
-  \@@_write_end:n{</answer>}}
+  \@@_write_end:x{</answer>}}
 
 \cs_new:Npn\@@_print_shortanswer_hint:x#1{
   \item[Hint:]~#1}
 
 \cs_new:Npn\@@_write_shortanswer_hint:x#1{
-  \@@_write_begin:n{<hint~format="html">}
+  \@@_write_begin:x{<hint~format="html">}
     \@@_write_html:n{#1}
-  \@@_write_end:n{</hint>}}
+  \@@_write_end:x{</hint>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_shortanswer_question:{
-  \@@_write_begin:n{<question~type="shortanswer">}
+  \@@_write_begin:x{<question~type="shortanswer">}
     \@@_write_common_data:
     \@@_write_use_case:
     \@@_map_answers:xx{write}{shortanswer}
-  \@@_write_end:n{</question>}
-  \@@_write:n{ }}
+  \@@_write_end:x{</question>}
+  \@@_write_newline:}
 %    \end{macrocode}
 %
 % \subsubsection{Numerical Question Front-End}
 % 
 %    \begin{macrocode}
-\@@_make_frontend{numerical}%
+\@@_make_frontend:n {numerical}%
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_numerical_question:{
@@ -1839,7 +1979,7 @@
       {\quad\((\fp_to_decimal:N\l_@@_fraction_fp\%)\)}}}
 
 \cs_new:Npn\@@_write_numerical_answer:x#1{
-  \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
+  \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="plain_text">}
     \@@_write_plain_text:x{#1}
     \@@_write_tolerance:
     \@@_if_calculated:TF
@@ -1850,26 +1990,26 @@
       }
       {}
     \@@_write_feedback:
-  \@@_write_end:n{</answer>}}
+  \@@_write_end:x{</answer>}}
 
 \cs_new:Npn\@@_print_numerical_hint:x#1{
   \item[Hint:]~#1}
 
 \cs_new:Npn\@@_write_numerical_hint:x#1{
-  \@@_write_begin:n{<hint~format="html">}
+  \@@_write_begin:x{<hint~format="html">}
     \@@_write_html:n{#1}
-  \@@_write_end:n{</hint>}}
+  \@@_write_end:x{</hint>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_numerical_question:{
-  \@@_write_begin:n{<question~type="\@@_if_calculated:TF{calculated}{numerical}">}
+  \@@_write_begin:x{<question~type="\@@_if_calculated:TF{calculated}{numerical}">}
     \@@_write_common_data:
     \@@_if_calculated:TF
       {
         \@@_write_synchronize:
-        \@@_write_begin:n{<dataset_definitions>}
+        \@@_write_begin:x{<dataset_definitions>}
           \clist_map_function:NN\l_@@_datasets_clist\@@_write_dataset:n
-        \@@_write_end:n{</dataset_definitions>}
+        \@@_write_end:x{</dataset_definitions>}
       }
       {}
     \@@_write_show_units:
@@ -1878,8 +2018,8 @@
     \@@_write_units_left:
     \@@_write_units:
     \@@_map_answers:xx{write}{numerical}
-  \@@_write_end:n{</question>}
-  \@@_write:n{ }
+  \@@_write_end:x{</question>}
+  \@@_write_newline:
 }%
 %    \end{macrocode}
 %
@@ -1894,7 +2034,7 @@
 %   \item 11
 % \end{multi}%
 
-\@@_make_frontend{multi}
+\@@_make_frontend:n {multi}
 
 % LATEX PROCESSING
 \cs_new:Npn\@@_print_multi_question:{
@@ -1918,11 +2058,11 @@
   \item[Hint:]~#1}
 
 \cs_new:Npn\@@_write_multi_hint:x#1{
-  \@@_write_begin:n{<hint~format="html">}
+  \@@_write_begin:x{<hint~format="html">}
     \@@_write_html:n{#1}
     \@@_write_clear_wrong:
     \@@_write_show_num_correct:
-  \@@_write_end:n{</hint>}}
+  \@@_write_end:x{</hint>}}
 
 % COMMON UTILITY: COUNTING CORRECT ANSWERS
    \newcounter{moodle@numcorrectanswers}%
@@ -1996,7 +2136,7 @@
   \fi}
 
 \cs_new:Npn\@@_write_multi_answer:x#1{
-  \@@_write_begin:n{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="html">}
+  \@@_write_begin:x{<answer~fraction="\fp_to_decimal:N\l_@@_fraction_fp"~format="html">}
     \@@_write_html:o{#1}
     \@@_if_calculated:TF
       {
@@ -2005,26 +2145,26 @@
       }
       {}
     \@@_write_feedback:
-  \@@_write_end:n{</answer>}}
+  \@@_write_end:x{</answer>}}
 
 % WRITING QUESTION TO XML FILE
 \cs_new:Npn\@@_write_multi_question:{
-  \@@_write_begin:n{<question~type="\@@_if_calculated:TF{calculatedmult}{multichoice}">}%
+  \@@_write_begin:x{<question~type="\@@_if_calculated:TF{calculatedmult}{multichoice}">}%
     \@@_write_common_data:%
     \@@_if_calculated:TF
       {
         \@@_write_synchronize:
-        \@@_write_begin:n{<dataset_definitions>}
+        \@@_write_begin:x{<dataset_definitions>}
           \clist_map_function:NN\l_@@_datasets_clist\@@_write_dataset:n
-        \@@_write_end:n{</dataset_definitions>}
+        \@@_write_end:x{</dataset_definitions>}
       }
       {}
     \@@_write_single:%
     \@@_write_shuffle:%
     \@@_write_answer_numbering:%
     \@@_map_answers:xx{write}{multi}
-  \@@_write_end:n{</question>}
-  \@@_write:n{ }
+  \@@_write_end:x{</question>}
+  \@@_write_newline:
 }%
 %    \end{macrocode}
 %
@@ -2033,58 +2173,58 @@
 %    \begin{macrocode}
 \let\answer=\hfill
 
-\@@_make_frontend{matching}
+\@@_make_frontend:n {matching}
 
 % LATEX PROCESSING
-\cs_new:Npn\@@_print_matching_question:{
-  \begin{enumerate}
-    \renewcommand{\theenumi}{\alph{enumi}}
-    \setlength\itemsep{0pt}
-    \setlength\parskip{0pt}
-    \@@_obey_numbering_style:
-    \@@_map_answers:xx{print}{matching}
-  \end{enumerate}
-}
+\cs_new:Nn \@@_print_matching_question:
+  {
+    \begin{enumerate}
+      \renewcommand {\theenumi} {\alph{enumi}}
+      \setlength \itemsep {0pt}
+      \setlength \parskip {0pt}
+      \@@_obey_numbering_style:
+      \@@_map_answers:xx {print} {matching}
+    \end{enumerate}
+  }
 
 \cs_new_eq:NN \@@_print_matching_hint:x \@@_print_multi_hint:x
 
 \cs_new_eq:NN \@@_write_matching_hint:x \@@_write_multi_hint:x
 
-\cs_new:Npn\@@_print_matching_answer:x#1{
-  \item #1}
+\cs_new:Npn\@@_print_matching_answer:x#1
+  { \item #1 }
 
 \cs_new:Npn\@@_write_matching_answer:x#1{
   \@@_write_matching_answer_split#1\l_@@_answer_delim}
 
 \def\@@_write_matching_answer_split#1\answer#2\l_@@_answer_delim{
-  \@@_write_begin:n{<subquestion~format="html">}
+  \@@_write_begin:x{<subquestion~format="html">}
     \@@_write_html:o{#1}
     \bool_if:NTF\l_@@_drag_and_drop_bool
       {
-       \@@_write_begin:n{<answer~format="html">}
+       \@@_write_begin:x{<answer~format="html">}
           \@@_write_html:o{#2}
-        \@@_write_end:n{</answer>}
+        \@@_write_end:x{</answer>}
       }{
-        \@@_write_begin:n{<answer>}
-          \@@_write:n{<text>#2</text>}
-        \@@_write_end:n{</answer>}
+        \@@_write_begin:x{<answer>}
+          \@@_write:x{<text>#2</text>}
+        \@@_write_end:x{</answer>}
       }
     \@@_write_feedback:
-  \@@_write_end:n{</subquestion>}}
+  \@@_write_end:x{</subquestion>}}
 
 % WRITING QUESTION TO XML FILE
-\cs_new:Npn\@@_write_matching_question:{
-  %
-  \@@_write_begin:n{<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}
-    \@@_write_common_data:%
-    \@@_write_single:
-    \@@_write_shuffle:
-    \@@_write_answer_numbering:%
-    \@@_map_answers:xx{write}{matching}
-  \@@_write_end:n{</question>}
-  \@@_write:n{ }
-%  \gdef\moodle@answ
-}%
+\cs_new:Npn \@@_write_matching_question:
+  {
+    \@@_write_begin:x {<question~type="\bool_if:NTF\l_@@_drag_and_drop_bool{ddmatch}{matching}">}
+      \@@_write_common_data:%
+      \@@_write_single:
+      \@@_write_shuffle:
+      \@@_write_answer_numbering:
+      \@@_map_answers:xx {write} {matching}
+    \@@_write_end:x {</question>}
+    \@@_write_newline:
+  }
 %    \end{macrocode}
 %
 % \subsection{Cloze Questions}
@@ -2106,30 +2246,33 @@
 % LATEX PROCESSING
 % SAVING ANSWERS TO MEMORY
 
-\NewEnviron{cloze}[1][]{%
-  \bgroup
-    \bool_set_true:N\l_@@_in_cloze_bool
-    % A cloze question won't have any \item's in it, so we just use \BODY.
-    \tl_set_eq:NN\l_@@_question_text_tl\BODY
-    \moodleset{#1}%
-    %First, the LaTeX processing.
-    \item \textbf{\l_@@_name_tl}\par
-    \noindent
-    \l_@@_question_text_tl
-    %Now, writing information to memory.
-    \@@_if_generate_xml:T{%
-      \@@_write_cloze_question:
-    }%
-  \egroup%
-}
+\NewDocumentEnvironment {cloze} { o +b }
+  {
+    \group_begin:
+      \IfNoValueF {#1}
+        { \moodleset {#1} }
+      \bool_set_true:N \l_@@_in_cloze_bool
+      % A cloze question won't have any \item's in it, so we just use \BODY.
+      \tl_set:Nn \l_@@_question_text_tl {#2}
+      % First, the LaTeX processing.
+      \item \textbf{\l_@@_name_tl} \par
+      \noindent
+      \l_@@_question_text_tl
+      % Now, writing information to memory.
+      \@@_if_generate_xml:T
+        { \@@_write_cloze_question: }
+    \group_end:
+  }
+  {}
 
 % WRITING QUESTION TO XML FILE
-\cs_new:Npn\@@_write_cloze_question:{
-  \@@_write_begin:n{<question~type="cloze">}%
-    \@@_write_common_data:
-  \@@_write_end:n{</question>}
-  \@@_write:n{ }
-}%
+\cs_new:Nn \@@_write_cloze_question:
+  {
+    \@@_write_begin:x {<question~type="cloze">}
+      \@@_write_common_data:
+    \@@_write_end:x {</question>}
+    \@@_write_newline:
+  }
 %    \end{macrocode}
 %
 % \section{Converting \LaTeX\ to HTML}
